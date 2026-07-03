@@ -1,0 +1,32 @@
+[
+  {
+    "id": "codex-reference-pack",
+    "name": "Codex 레퍼런스 팩",
+    "description": "Codex 이미지 또는 UI 작업을 위한 범용 로컬 레퍼런스 묶음입니다.",
+    "outputFileName": "instruction.md",
+    "sections": ["goal", "references", "assetNotes", "commonTraits", "instructions", "constraints", "colorReferences", "codexInstructions"],
+    "defaultGoal": "첨부된 로컬 레퍼런스를 기준으로 결과물을 만듭니다.",
+    "defaultApplyInstructions": "레퍼런스의 핵심 시각 단서를 유지하되 요청한 결과물에 맞게 적용합니다.",
+    "defaultForbiddenRules": "제공된 레퍼런스와 충돌하는 세부사항을 임의로 만들지 마세요."
+  },
+  {
+    "id": "style-board",
+    "name": "스타일 보드",
+    "description": "선택한 레퍼런스의 형태 언어, 색상, 재질, 분위기를 요약합니다.",
+    "outputFileName": "style-board.md",
+    "sections": ["goal", "references", "commonTraits", "colorReferences", "assetNotes", "instructions", "constraints", "codexInstructions"],
+    "defaultGoal": "이 레퍼런스들에서 재사용 가능한 시각 스타일 방향을 추출합니다.",
+    "defaultApplyInstructions": "반복되는 디자인 특징, 비례, 팔레트, 조명, 구도를 중심으로 분석합니다.",
+    "defaultForbiddenRules": "명시적으로 요청하지 않는 한 하나의 레퍼런스를 그대로 복제하지 마세요."
+  },
+  {
+    "id": "ui-analysis",
+    "name": "UI 분석",
+    "description": "선택한 인터페이스 레퍼런스를 구현 계획용으로 정리합니다.",
+    "outputFileName": "ui-analysis.md",
+    "sections": ["goal", "references", "assetNotes", "commonTraits", "instructions", "constraints", "colorReferences", "codexInstructions"],
+    "defaultGoal": "이 UI 레퍼런스를 분석해 구현 가능한 인터페이스 지침으로 변환합니다.",
+    "defaultApplyInstructions": "레이아웃 구조, 컨트롤, 밀도, 위계, 간격, 재사용 컴포넌트를 짚어 주세요.",
+    "defaultForbiddenRules": "레퍼런스에서 분명하지 않은 장식 요소를 기능 요구사항으로 취급하지 마세요."
+  }
+]

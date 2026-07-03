@@ -1,0 +1,26 @@
+{
+  "id": "codex-default-ko",
+  "name": "Codex 기본",
+  "fileName": "instruction.md",
+  "sectionLabels": {
+    "goal": "목표",
+    "references": "참고 자료",
+    "assetNotes": "자료 메모",
+    "commonTraits": "공통 특징",
+    "instructions": "적용 지시",
+    "constraints": "금지 사항",
+    "colorReferences": "색상 참고",
+    "codexInstructions": "Codex 작업 지침"
+  },
+  "codexInstructions": "`./refs` 안의 레퍼런스 자산을 로컬 시각 컨텍스트로 사용하세요. 요청한 작업을 구현할 때 파일명, 태그, 메모, 색상 팔레트에서 유용한 세부사항을 보존하세요.",
+  "sections": [
+    "goal",
+    "references",
+    "assetNotes",
+    "commonTraits",
+    "instructions",
+    "constraints",
+    "colorReferences",
+    "codexInstructions"
+  ]
+}

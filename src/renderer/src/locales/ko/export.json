@@ -1,0 +1,30 @@
+{
+  "dialogTitle": "Codex Markdown 내보내기",
+  "selectedAssets": "{{count}}개 선택 자산",
+  "preset": "프리셋",
+  "exportName": "내보내기 이름",
+  "sourceCollection": "소스 컬렉션",
+  "selectedAssetsOption": "선택한 자산",
+  "goal": "목표",
+  "commonTraits": "공통 특징",
+  "instructions": "적용 지시",
+  "constraints": "금지 사항",
+  "outputFile": "출력 파일",
+  "createdRefs": "{{count}}개 refs 생성됨",
+  "openFolder": "폴더 열기",
+  "export": "내보내기",
+  "presets": {
+    "codex-reference-pack": {
+      "name": "Codex 레퍼런스 팩",
+      "description": "Codex 이미지 또는 UI 작업을 위한 범용 로컬 레퍼런스 묶음입니다."
+    },
+    "style-board": {
+      "name": "스타일 보드",
+      "description": "선택한 레퍼런스의 형태 언어, 색상, 재질, 분위기를 요약합니다."
+    },
+    "ui-analysis": {
+      "name": "UI 분석",
+      "description": "선택한 인터페이스 레퍼런스를 구현 계획용으로 정리합니다."
+    }
+  }
+}

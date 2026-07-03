@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Suwol Visual Reference icon">
+  <defs>
+    <linearGradient id="card" x1="214" y1="194" x2="810" y2="830" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2f3552"/>
+      <stop offset="0.52" stop-color="#171b29"/>
+      <stop offset="1" stop-color="#0f141d"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="192" y1="164" x2="816" y2="850" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b88cff"/>
+      <stop offset="0.48" stop-color="#33d6c2"/>
+      <stop offset="1" stop-color="#58f0ad"/>
+    </linearGradient>
+    <linearGradient id="lens" x1="356" y1="332" x2="682" y2="710" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7c6cff"/>
+      <stop offset="0.5" stop-color="#25c7bd"/>
+      <stop offset="1" stop-color="#65f0a4"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(517 506) rotate(88) scale(430)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#46dfc7" stop-opacity="0.42"/>
+      <stop offset="0.64" stop-color="#8d6cff" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#0d1018" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="120" y="116" width="800" height="820" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="38" stdDeviation="38" flood-color="#02040a" flood-opacity="0.48"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="none"/>
+  <g filter="url(#shadow)">
+    <path d="M255 175h414c22 0 40 18 40 40v68h72c22 0 40 18 40 40v486c0 22-18 40-40 40H355c-22 0-40-18-40-40v-68h-60c-22 0-40-18-40-40V215c0-22 18-40 40-40Z" fill="#0b0e16"/>
+    <path d="M255 175h414c22 0 40 18 40 40v486c0 22-18 40-40 40H255c-22 0-40-18-40-40V215c0-22 18-40 40-40Z" fill="url(#card)"/>
+    <path d="M355 283h426c22 0 40 18 40 40v486c0 22-18 40-40 40H355c-22 0-40-18-40-40V323c0-22 18-40 40-40Z" fill="#121722"/>
+    <path d="M363 309h410c12 0 22 10 22 22v470c0 12-10 22-22 22H363c-12 0-22-10-22-22V331c0-12 10-22 22-22Z" fill="url(#card)"/>
+    <path d="M255 175h414c22 0 40 18 40 40v486c0 22-18 40-40 40H255c-22 0-40-18-40-40V215c0-22 18-40 40-40Zm108 134h410c12 0 22 10 22 22v470c0 12-10 22-22 22H363c-12 0-22-10-22-22V331c0-12 10-22 22-22Z" fill="url(#glow)"/>
+    <path d="M280 239h360c10 0 18 8 18 18v402c0 10-8 18-18 18H280c-10 0-18-8-18-18V257c0-10 8-18 18-18Z" fill="none" stroke="url(#frame)" stroke-width="34" stroke-linejoin="round"/>
+    <path d="M409 395h222c10 0 18 8 18 18v300c0 10-8 18-18 18H409c-10 0-18-8-18-18V413c0-10 8-18 18-18Z" fill="none" stroke="#d7fff6" stroke-opacity="0.86" stroke-width="22" stroke-linejoin="round"/>
+    <path d="M520 360 652 492 520 624 388 492 520 360Z" fill="url(#lens)"/>
+    <path d="M520 406 606 492 520 578 434 492 520 406Z" fill="#101520"/>
+    <path d="M520 434 578 492 520 550 462 492 520 434Z" fill="#e6fff9"/>
+    <path d="M520 455 557 492 520 529 483 492 520 455Z" fill="#1dcfc1"/>
+    <path d="M698 365h53v53h-53v-53Zm-300 310h52v52h-52v-52Zm300 0h53v52h-53v-52Z" fill="#76f5c2"/>
+    <path d="M292 270h75v30h-45v45h-30v-75Zm326 0h75v75h-30v-45h-45v-30ZM292 616h30v45h45v30h-75v-75Zm371 0h30v75h-75v-30h45v-45Z" fill="#efe7ff"/>
+  </g>
+</svg>

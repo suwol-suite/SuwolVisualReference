@@ -1,0 +1,32 @@
+[
+  {
+    "id": "codex-reference-pack",
+    "name": "Codex Reference Pack",
+    "description": "General-purpose local reference bundle for Codex image or UI work.",
+    "outputFileName": "instruction.md",
+    "sections": ["goal", "references", "assetNotes", "commonTraits", "instructions", "constraints", "colorReferences", "codexInstructions"],
+    "defaultGoal": "Use the attached local references to guide the result.",
+    "defaultApplyInstructions": "Preserve the strongest visual cues from the references while adapting them to the requested output.",
+    "defaultForbiddenRules": "Do not invent details that conflict with the provided references."
+  },
+  {
+    "id": "style-board",
+    "name": "Style Board",
+    "description": "Summarize shape language, color, materials, and mood across selected references.",
+    "outputFileName": "style-board.md",
+    "sections": ["goal", "references", "commonTraits", "colorReferences", "assetNotes", "instructions", "constraints", "codexInstructions"],
+    "defaultGoal": "Extract a reusable visual style direction from these references.",
+    "defaultApplyInstructions": "Focus on repeated design traits, proportions, palette, lighting, and composition.",
+    "defaultForbiddenRules": "Do not copy a single reference literally unless explicitly requested."
+  },
+  {
+    "id": "ui-analysis",
+    "name": "UI Analysis",
+    "description": "Prepare selected interface references for implementation planning.",
+    "outputFileName": "ui-analysis.md",
+    "sections": ["goal", "references", "assetNotes", "commonTraits", "instructions", "constraints", "colorReferences", "codexInstructions"],
+    "defaultGoal": "Analyze these UI references and translate them into implementable interface guidance.",
+    "defaultApplyInstructions": "Call out layout structure, controls, density, hierarchy, spacing, and reusable components.",
+    "defaultForbiddenRules": "Do not treat decorative details as functional requirements unless the reference makes them clear."
+  }
+]

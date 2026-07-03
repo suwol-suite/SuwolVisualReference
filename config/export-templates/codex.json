@@ -1,0 +1,26 @@
+{
+  "id": "codex-default",
+  "name": "Codex Default",
+  "fileName": "instruction.md",
+  "sectionLabels": {
+    "goal": "Goal",
+    "references": "References",
+    "assetNotes": "Asset Notes",
+    "commonTraits": "Common Traits",
+    "instructions": "Instructions",
+    "constraints": "Constraints",
+    "colorReferences": "Color References",
+    "codexInstructions": "Codex Work Instructions"
+  },
+  "codexInstructions": "Use the reference assets in `./refs` as local visual context. Preserve useful details from file names, tags, notes, and color palettes when implementing the requested work.",
+  "sections": [
+    "goal",
+    "references",
+    "assetNotes",
+    "commonTraits",
+    "instructions",
+    "constraints",
+    "colorReferences",
+    "codexInstructions"
+  ]
+}

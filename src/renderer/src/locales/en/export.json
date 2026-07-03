@@ -1,0 +1,30 @@
+{
+  "dialogTitle": "Codex Markdown Export",
+  "selectedAssets": "{{count}} selected asset(s)",
+  "preset": "Preset",
+  "exportName": "Export name",
+  "sourceCollection": "Source collection",
+  "selectedAssetsOption": "Selected assets",
+  "goal": "Goal",
+  "commonTraits": "Common traits",
+  "instructions": "Instructions",
+  "constraints": "Constraints",
+  "outputFile": "Output file",
+  "createdRefs": "Created {{count}} refs",
+  "openFolder": "Open Folder",
+  "export": "Export",
+  "presets": {
+    "codex-reference-pack": {
+      "name": "Codex Reference Pack",
+      "description": "General-purpose local reference bundle for Codex image or UI work."
+    },
+    "style-board": {
+      "name": "Style Board",
+      "description": "Summarize shape language, color, materials, and mood across selected references."
+    },
+    "ui-analysis": {
+      "name": "UI Analysis",
+      "description": "Prepare selected interface references for implementation planning."
+    }
+  }
+}

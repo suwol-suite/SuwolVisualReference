@@ -1,0 +1,138 @@
+{
+  "name": "suwol-visual-reference",
+  "version": "0.1.0",
+  "description": "Local visual reference manager for game developers.",
+  "author": "SuwolSoft",
+  "private": true,
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/suwol-suite/SuwolVisualReference.git"
+  },
+  "bugs": {
+    "url": "https://github.com/suwol-suite/SuwolVisualReference/issues"
+  },
+  "homepage": "https://github.com/suwol-suite/SuwolVisualReference#readme",
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "npm run typecheck && electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "i18n:check": "node scripts/check-i18n.mjs",
+    "icons:generate": "node scripts/generate-icons.mjs",
+    "license:report": "node scripts/license-report.mjs --write",
+    "license:check": "node scripts/license-report.mjs --check",
+    "rebuild:native": "electron-builder install-app-deps",
+    "smoke": "npm run build && electron out/main/index.js --smoke-test",
+    "test:ui-import": "npm run build && electron out/main/index.js --ui-import-test",
+    "test:library-perf": "npm run build && electron out/main/index.js --library-perf-test",
+    "pack:win": "npm run icons:generate && npm run build && electron-builder --win --dir",
+    "pack:linux": "npm run icons:generate && npm run build && electron-builder --linux --dir",
+    "dist:win": "npm run icons:generate && npm run build && electron-builder --win zip",
+    "dist:linux": "npm run icons:generate && npm run build && electron-builder --linux zip",
+    "release:zip:win": "npm run dist:win",
+    "release:zip:linux": "npm run dist:linux",
+    "release:checksums": "node scripts/checksums.mjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "i18next": "^26.3.4",
+    "lucide-react": "^0.468.0",
+    "mime-types": "^2.1.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-i18next": "^17.0.8",
+    "sharp": "^0.34.3",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/mime-types": "^2.1.4",
+    "@types/node": "^24.0.10",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.62.1",
+    "@typescript-eslint/parser": "^8.62.1",
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^31.7.7",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^2.3.0",
+    "eslint": "^10.6.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.7.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.0"
+  },
+  "allowScripts": {
+    "better-sqlite3@12.11.1": true,
+    "electron@31.7.7": true,
+    "electron-winstaller@5.4.0": true,
+    "esbuild@0.21.5": true,
+    "sharp@0.34.5": true
+  },
+  "build": {
+    "appId": "com.suwolsoft.suwolvisualreference",
+    "productName": "Suwol Visual Reference",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**",
+      "config/**",
+      "migrations/**",
+      "assets/brand/**",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.ico",
+        "to": "build/icon.ico"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "build/icon.png"
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**",
+      "node_modules/sharp/**"
+    ],
+    "npmRebuild": true,
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "SuwolVisualReference-${version}-win-${arch}.${ext}"
+    },
+    "mac": {
+      "icon": "build/icon.icns"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Graphics",
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "SuwolVisualReference-${version}-linux-${arch}.${ext}"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "selectAssets": "먼저 하나 이상의 자산을 선택하세요.",
+  "permanentDeleteRequiresTrash": "영구 삭제는 휴지통 안의 자산에만 사용할 수 있습니다.",
+  "generic": "작업을 완료하지 못했습니다.",
+  "details": "상세 정보",
+  "codes": {
+    "LIBRARY_CREATE_FAILED": "라이브러리를 만들지 못했습니다.",
+    "LIBRARY_OPEN_FAILED": "라이브러리를 열지 못했습니다.",
+    "IMPORT_FAILED": "가져오기에 실패했습니다.",
+    "THUMBNAIL_FAILED": "썸네일 생성에 실패했습니다.",
+    "DB_SAVE_FAILED": "데이터베이스 저장에 실패했습니다.",
+    "EXPORT_FAILED": "내보내기에 실패했습니다.",
+    "TRASH_FAILED": "휴지통으로 이동하지 못했습니다.",
+    "RESTORE_FAILED": "복원하지 못했습니다.",
+    "PERMANENT_DELETE_FAILED": "영구 삭제하지 못했습니다.",
+    "SMART_FOLDER_SAVE_FAILED": "스마트 폴더를 저장하지 못했습니다."
+  }
+}

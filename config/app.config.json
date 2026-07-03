@@ -1,0 +1,26 @@
+{
+  "appName": "Suwol Visual Reference",
+  "formatVersion": 1,
+  "thumbnailSize": 420,
+  "gridThumbnailSize": 176,
+  "theme": "dark",
+  "defaultImportMode": "copy",
+  "autoDuplicateCheck": true,
+  "autoColorAnalysis": true,
+  "supportedImageExtensions": ["png", "jpg", "jpeg", "webp", "gif", "svg"],
+  "placeholderExtensions": [
+    "mp4",
+    "webm",
+    "mov",
+    "mp3",
+    "wav",
+    "ogg",
+    "md",
+    "txt",
+    "pdf",
+    "ttf",
+    "otf",
+    "woff",
+    "zip"
+  ]
+}
