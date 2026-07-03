@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to publish, for example v0.1.0'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -140,30 +146,37 @@ jobs:
       - name: Verify version and create checksums
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RELEASE_TAG="${{ inputs.release_tag }}"
+          else
+            RELEASE_TAG="${GITHUB_REF_NAME}"
+          fi
+          VERSION="${RELEASE_TAG#v}"
           PACKAGE_VERSION="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
           if [ "$VERSION" != "$PACKAGE_VERSION" ]; then
             echo "Tag version $VERSION does not match package.json version $PACKAGE_VERSION"
             exit 1
           fi
+          git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}"
           find release-assets -maxdepth 1 -type f -print
           node scripts/checksums.mjs release-assets
           cat "release-assets/SuwolVisualReference-${VERSION}-checksums.txt"
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> "$GITHUB_ENV"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
-          NOTES_FILE="docs/release-notes/${GITHUB_REF_NAME}.md"
+          NOTES_FILE="docs/release-notes/${RELEASE_TAG}.md"
           if [ ! -f "$NOTES_FILE" ]; then
             NOTES_FILE=".github/release-template.md"
           fi
-          gh release create "$GITHUB_REF_NAME" \
+          gh release create "$RELEASE_TAG" \
             "release-assets/SuwolVisualReference-${VERSION}-win-x64.zip" \
             "release-assets/SuwolVisualReference-${VERSION}-linux-x64.zip" \
             "release-assets/SuwolVisualReference-${VERSION}-checksums.txt" \
             --verify-tag \
-            --title "Suwol Visual Reference ${GITHUB_REF_NAME}" \
+            --title "Suwol Visual Reference ${RELEASE_TAG}" \
             --notes-file "$NOTES_FILE"

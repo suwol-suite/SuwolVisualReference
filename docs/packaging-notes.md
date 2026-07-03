@@ -111,6 +111,8 @@ npm.cmd run release:checksums
 
 The GitHub Actions release job downloads both OS artifacts, runs the same script against `release-assets/`, and uploads the ZIP files plus checksum file to GitHub Releases.
 
+The normal release trigger is a `v*` tag push. If a tag-triggered run fails after the tag already exists, the same workflow can be run manually with `workflow_dispatch` and the existing tag name, such as `v0.1.0`, without deleting or recreating the tag.
+
 ## Security Notes
 
 - Renderer `nodeIntegration` remains disabled.
