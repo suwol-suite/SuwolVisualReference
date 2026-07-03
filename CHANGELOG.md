@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1 - Release workflow repair
+
+### Fixed
+
+- Updated GitHub Actions release workflow to build with Node.js 24.
+- Fixed Linux CI smoke test by running Electron under Xvfb with `--no-sandbox`.
+- Added manual release workflow recovery through `workflow_dispatch` for existing tags.
+
 ## 0.1.0 - Initial public release
 
 ### Added

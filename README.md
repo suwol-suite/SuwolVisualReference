@@ -28,7 +28,7 @@ Screenshots are planned after the first public ZIP release.
 - Linux x64: ZIP distribution.
 - macOS: not distributed yet.
 
-No installer and no automatic updater are included in v0.1.0.
+No installer and no automatic updater are included in v0.1.1.
 
 ## Download
 
@@ -36,14 +36,14 @@ Download the latest ZIP from [GitHub Releases](https://github.com/suwol-suite/Su
 
 ### Windows ZIP
 
-1. Download `SuwolVisualReference-0.1.0-win-x64.zip`.
+1. Download `SuwolVisualReference-0.1.1-win-x64.zip`.
 2. Extract the ZIP.
 3. Run `Suwol Visual Reference.exe`.
-4. Windows SmartScreen may warn because the v0.1.0 build is not code-signed.
+4. Windows SmartScreen may warn because the v0.1.1 build is not code-signed.
 
 ### Linux ZIP
 
-1. Download `SuwolVisualReference-0.1.0-linux-x64.zip`.
+1. Download `SuwolVisualReference-0.1.1-linux-x64.zip`.
 2. Extract the ZIP.
 3. If your desktop environment requires it, mark the executable as runnable:
 
@@ -129,11 +129,11 @@ Checksums:
 npm.cmd run release:checksums
 ```
 
-Expected v0.1.0 release assets:
+Expected v0.1.1 release assets:
 
-- `SuwolVisualReference-0.1.0-win-x64.zip`
-- `SuwolVisualReference-0.1.0-linux-x64.zip`
-- `SuwolVisualReference-0.1.0-checksums.txt`
+- `SuwolVisualReference-0.1.1-win-x64.zip`
+- `SuwolVisualReference-0.1.1-linux-x64.zip`
+- `SuwolVisualReference-0.1.1-checksums.txt`
 
 GitHub Actions builds Windows and Linux ZIP files on their matching OS runners when a `v*` tag is pushed. The workflow publishes a GitHub Release with ZIP files and SHA-256 checksums using the default `GITHUB_TOKEN`.
 

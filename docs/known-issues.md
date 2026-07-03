@@ -2,7 +2,7 @@
 
 ## Windows SmartScreen
 
-The v0.1.0 Windows ZIP is not code-signed. Windows SmartScreen may warn before the app runs.
+The v0.1.1 Windows ZIP is not code-signed. Windows SmartScreen may warn before the app runs.
 
 ## Code Signing
 
@@ -10,7 +10,7 @@ No Windows signing certificate is configured yet. Signed release builds are plan
 
 ## macOS
 
-macOS builds are not distributed in v0.1.0.
+macOS builds are not distributed in v0.1.1.
 
 ## Linux ZIP Distribution
 
@@ -30,7 +30,7 @@ Large libraries load assets in 500-item pages. This keeps the UI responsive, but
 
 ## Automatic Updates
 
-Automatic updates are not included in v0.1.0. Download new ZIP files from GitHub Releases.
+Automatic updates are not included in v0.1.1. Download new ZIP files from GitHub Releases.
 
 ## User Asset Rights
 

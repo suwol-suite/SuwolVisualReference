@@ -1,14 +1,14 @@
 # Packaging Notes
 
-Suwol Visual Reference v0.1.0 is distributed as ZIP archives for Windows x64 and Linux x64. Installers, automatic updates, code signing, and macOS artifacts are not part of the first public release.
+Suwol Visual Reference v0.1.1 is distributed as ZIP archives for Windows x64 and Linux x64. Installers, automatic updates, code signing, and macOS artifacts are not part of the first public release.
 
 ## Artifact Names
 
 Expected release assets:
 
-- `SuwolVisualReference-0.1.0-win-x64.zip`
-- `SuwolVisualReference-0.1.0-linux-x64.zip`
-- `SuwolVisualReference-0.1.0-checksums.txt`
+- `SuwolVisualReference-0.1.1-win-x64.zip`
+- `SuwolVisualReference-0.1.1-linux-x64.zip`
+- `SuwolVisualReference-0.1.1-checksums.txt`
 
 The user-facing app name remains `Suwol Visual Reference`.
 
@@ -111,7 +111,7 @@ npm.cmd run release:checksums
 
 The GitHub Actions release job downloads both OS artifacts, runs the same script against `release-assets/`, and uploads the ZIP files plus checksum file to GitHub Releases.
 
-The normal release trigger is a `v*` tag push. If a tag-triggered run fails after the tag already exists, the same workflow can be run manually with `workflow_dispatch` and the existing tag name, such as `v0.1.0`, without deleting or recreating the tag.
+The normal release trigger is a `v*` tag push. If a tag-triggered run fails after the tag already exists, the same workflow can be run manually with `workflow_dispatch` and the existing tag name, such as `v0.1.1`, without deleting or recreating the tag.
 
 ## Security Notes
 
