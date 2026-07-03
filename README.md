@@ -67,7 +67,7 @@ The project uses:
 - i18next / react-i18next
 - CSS Modules
 
-Use Node.js 20 for release builds and GitHub Actions parity.
+Use Node.js 24 for release builds and GitHub Actions parity.
 
 On Windows PowerShell, use `npm.cmd` because `npm.ps1` may be blocked by execution policy.
 

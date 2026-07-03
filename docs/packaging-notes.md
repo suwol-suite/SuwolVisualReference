@@ -96,7 +96,8 @@ npm run typecheck
 npm run lint
 npm run i18n:check
 npm run license:check
-xvfb-run -a npm run smoke
+npm run build
+xvfb-run -a ./node_modules/.bin/electron --no-sandbox out/main/index.js --smoke-test
 npm run release:zip:linux
 ```
 
