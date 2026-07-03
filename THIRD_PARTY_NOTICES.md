@@ -26,7 +26,7 @@ It summarizes npm packages bundled for development or runtime use by Suwol Visua
 | @babel/template | 7.29.7 | MIT | transitive |
 | @babel/traverse | 7.29.7 | MIT | transitive |
 | @babel/types | 7.29.7 | MIT | transitive |
-| @electron/asar | 3.4.1 | MIT | transitive |
+| @electron/asar | 3.4.1 | MIT | development direct |
 | @electron/fuses | 1.8.0 | MIT | transitive |
 | @electron/get | 2.0.3 | MIT | transitive |
 | @electron/get | 3.1.0 | MIT | transitive |

@@ -53,6 +53,22 @@ Download the latest ZIP from [GitHub Releases](https://github.com/suwol-suite/Su
 
 4. Run the app from the extracted folder.
 
+### Verify Checksums
+
+Download `SuwolVisualReference-0.1.1-checksums.txt` from the same release and compare the SHA-256 hash before running the app.
+
+Windows PowerShell:
+
+```powershell
+Get-FileHash .\SuwolVisualReference-0.1.1-win-x64.zip -Algorithm SHA256
+```
+
+Linux:
+
+```bash
+sha256sum SuwolVisualReference-0.1.1-linux-x64.zip
+```
+
 ## Development Environment
 
 The project uses:
@@ -98,6 +114,10 @@ npm.cmd run smoke
 npm.cmd run build
 npm.cmd audit --omit=dev
 npm.cmd run pack:win
+npm.cmd run release:zip:win
+npm.cmd run release:checksums
+npm.cmd run verify:checksums
+npm.cmd run verify:release:zip
 ```
 
 Additional local checks:
@@ -137,6 +157,10 @@ Expected v0.1.1 release assets:
 
 GitHub Actions builds Windows and Linux ZIP files on their matching OS runners when a `v*` tag is pushed. The workflow publishes a GitHub Release with ZIP files and SHA-256 checksums using the default `GITHUB_TOKEN`.
 
+The CI workflow runs on pushes and pull requests to `main`. It checks type safety, linting, i18n resources, third-party notices, smoke behavior, production build, and production dependency audit on Windows and Linux.
+
+Release recovery through `workflow_dispatch` is documented in [docs/packaging-notes.md](docs/packaging-notes.md). The full release checklist is in [docs/release-process.md](docs/release-process.md).
+
 ## Library Layout
 
 Libraries are portable folders. File paths stored in the database are relative to the library root.
@@ -154,6 +178,12 @@ backups
 ## Known Issues
 
 See [docs/known-issues.md](docs/known-issues.md).
+
+## Issues And Requests
+
+Use the GitHub issue templates for bugs and feature requests. Do not attach private libraries, copyrighted assets, personal source files, SQLite databases, `.env` files, tokens, certificates, or keys.
+
+Manual release QA is tracked in [docs/manual-qa-checklist.md](docs/manual-qa-checklist.md).
 
 ## User Asset Rights
 

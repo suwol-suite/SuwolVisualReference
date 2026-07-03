@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security or private data report
+    url: https://github.com/suwol-suite/SuwolVisualReference/security/advisories/new
+    about: Do not file public issues for vulnerabilities, tokens, private assets, or personal data.

@@ -80,6 +80,9 @@ npm.cmd audit --omit=dev
 npm.cmd run pack:win
 npm.cmd run release:zip:win
 npm.cmd run release:checksums
+npm.cmd run verify:checksums
+npm.cmd run verify:release:zip
+npm.cmd run release:verify
 ```
 
 `pack:win` creates `release/win-unpacked` for local packaging QA. `release:zip:win` creates the Windows ZIP release asset.
@@ -109,7 +112,11 @@ npm.cmd run release:checksums
 
 `scripts/checksums.mjs` hashes matching `SuwolVisualReference-<version>-*.zip` files in `release/` by default and writes `SuwolVisualReference-<version>-checksums.txt`.
 
-The GitHub Actions release job downloads both OS artifacts, runs the same script against `release-assets/`, and uploads the ZIP files plus checksum file to GitHub Releases.
+`scripts/verify-checksums.mjs` reads the checksum file, recalculates SHA-256 for each listed ZIP, and fails if a ZIP is missing or a hash differs.
+
+`scripts/verify-release-zip.mjs` checks release ZIP structure, required executables, `resources/app.asar`, packaged icon resources, license/notices inside `app.asar`, and forbidden private/test paths.
+
+The GitHub Actions release job downloads both OS artifacts, runs the same checksum and ZIP verification scripts against `release-assets/`, and uploads the ZIP files plus checksum file to GitHub Releases.
 
 The normal release trigger is a `v*` tag push. If a tag-triggered run fails after the tag already exists, the same workflow can be run manually with `workflow_dispatch` and the existing tag name, such as `v0.1.1`, without deleting or recreating the tag.
 

@@ -16,6 +16,10 @@ macOS builds are not distributed in v0.1.1.
 
 Linux is distributed as a ZIP archive. Some desktop environments may require setting executable permission manually after extraction.
 
+## Linux Headless CI
+
+GitHub Actions runs Linux smoke tests under Xvfb and passes `--no-sandbox` to Electron because the hosted runner does not configure Chromium's SUID sandbox helper for packaged test execution. This is a CI-only headless test setting, not an app feature toggle.
+
 ## Native Modules
 
 The app uses native dependencies, including `better-sqlite3` and `sharp`. Windows and Linux release ZIPs are built on matching OS runners to avoid cross-built native modules, but unusual Linux environments may still expose native runtime issues.
@@ -23,6 +27,10 @@ The app uses native dependencies, including `better-sqlite3` and `sharp`. Window
 ## Media Preview Scope
 
 Image import, thumbnails, and previews are the first priority. Advanced video thumbnails, audio waveforms, and rich previews for non-image media are not included yet.
+
+## OCR, AI Tagging, And Browser Capture
+
+OCR, automatic AI tagging, and browser extension capture are not included yet.
 
 ## Large Libraries
 

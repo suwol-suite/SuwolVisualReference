@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Windows and Linux CI workflow for pushes, pull requests, and manual runs.
+- Release ZIP structure verification script.
+- Release checksum verification script.
+- Issue templates and pull request template.
+- Release process and manual QA checklist documentation.
+
+### Changed
+
+- Release workflow now verifies downloaded ZIP artifacts before publishing GitHub Releases.
+- README and known issues include stronger checksum, issue reporting, and release QA guidance.
+
 ## 0.1.1 - Release workflow repair
 
 ### Fixed

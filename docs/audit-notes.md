@@ -1,6 +1,6 @@
 # npm Audit Notes
 
-Checked on 2026-07-03.
+Checked on 2026-07-04.
 
 ## Commands
 
@@ -42,6 +42,8 @@ npm.cmd run test:ui-import
 ```
 
 The 2026-07-03 stabilization pass added `electron-builder` for Windows packaging, renamed public package metadata to Suwol Visual Reference, and did not run `npm audit fix --force`.
+
+The 2026-07-04 release-prep pass keeps `npm audit --omit=dev` as the required runtime audit gate in CI and release verification. Dev/tooling audit items remain documented for a future Electron/Vite compatibility pass.
 
 ## Mitigations Already Present
 
