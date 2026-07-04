@@ -10,7 +10,9 @@ It helps you build portable local libraries of image and UI references, add prac
 - Open recent libraries without browsing for the folder again.
 - Import individual files or recursive folders.
 - Keep thumbnails, previews, tags, memo, rating, favorite state, source URL, collections, and smart folders.
-- Search, filter, paginate, and incrementally load large libraries.
+- Search, sort, filter, paginate, and incrementally load large libraries.
+- Switch between thumbnail grid and dense list views.
+- Manage tags and collections, including collection colors and cover images.
 - Use desktop-style selection, range selection, drag-box selection, and multi-selection batch actions.
 - Review SHA-256 duplicates, merge metadata, ignore groups, or move redundant copies to trash.
 - Restore from trash or permanently delete library-internal copies.
@@ -129,7 +131,7 @@ npm.cmd run test:ui-import
 npm.cmd run test:library-perf -- "<existing-library-path>"
 ```
 
-`smoke` creates a temporary local library, imports files and nested folders, checks duplicate handling, metadata operations, smart folders, trash/restore, permanent delete result handling, thumbnails, persistence, and Codex Markdown export.
+`smoke` creates a temporary local library, imports files and nested folders, checks duplicate handling, metadata operations, advanced sort/filter queries, collection covers, smart folders, trash/restore, permanent delete result handling, thumbnails, persistence, and Codex Markdown export.
 
 ## Release Build
 

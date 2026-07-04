@@ -32,6 +32,8 @@ Migration `003_query_tags_duplicates.sql` adds `duplicate_resolutions` for hash-
 
 Migration `004_permanent_delete_results.sql` adds permanent-delete failure/batch columns used by trash-only deletion result reporting and retry workflows.
 
+Migration `005_asset_organization_tools.sql` adds explicit collection cover metadata plus indexes for size, dimension, imported-date, collection-order, and smart-folder organization queries.
+
 ## Library Folder Structure
 
 Each library is a portable folder:
@@ -89,7 +91,11 @@ App defaults are loaded from `config/app.config.json`. The current settings moda
 
 Renderer asset loading uses the preload bridge, backed by `LibraryDatabase.queryAssets`. It returns `{ items, totalCount, limit, offset, hasMore }` instead of an unbounded array. The renderer keeps the loaded page window in Zustand and appends 500 assets at a time when the center grid nears the bottom or the user presses Load more.
 
-The query accepts view/filter fields for library, favorites, trash, duplicates, tag, collection, smart folder, search, duplicate hash, sorting, limit, and offset. Normal library queries show `is_deleted = 0`; trash uses `is_deleted = 1`; duplicate view only includes unresolved active SHA-256 groups.
+The query accepts view/filter fields for library, favorites, trash, duplicates, tag, collection, smart folder, search, duplicate hash, structured sorting, advanced filters, limit, and offset. Normal library queries show `is_deleted = 0`; trash uses `is_deleted = 1`; duplicate view only includes unresolved active SHA-256 groups.
+
+Structured sorting supports imported date, title, file size, pixel count, rating, extension, and collection order. Legacy string sort values are still accepted at the DB boundary for compatibility.
+
+Advanced filters support media type, extension, favorite-only, minimum rating, included tags, excluded tags, orientation/aspect, minimum width, minimum height, memo presence, source URL presence, recency, duplicate-only, and deleted-only conditions. SQL column and order clauses are whitelisted; renderer input is normalized before it reaches IPC.
 
 The app shell uses resizable sidebar/center/inspector tracks with `overflow: hidden`; the center grid, sidebar lists, and inspector own their scroll areas. Sidebar and inspector widths are saved in `localStorage`, and double-clicking a splitter resets the width. This prevents parent flex/grid `min-height` issues from blocking wheel and trackpad scroll.
 
@@ -113,9 +119,21 @@ Tag merge takes several source tags and one target tag. All source-tagged assets
 
 There is no language-specific tag conversion API. User-created tag names are stored as entered, whether Korean, English, or any other text. The app must not auto-translate, auto-rename, or specially classify tags by language.
 
+## Asset Organization UX
+
+The center workspace supports both grid and list view. Grid view keeps drag-box selection over rendered cards. List view shows preview, name, extension, file size, dimensions, aspect ratio, rating, favorite state, tags, collection count, import date, and source path. List header buttons update the shared asset sort state, and click, Ctrl/Cmd-click, Shift-click, Enter, Space, and double-click keep the same selection/viewer behavior as the grid.
+
+The toolbar owns the shared grid/list toggle, sort selector, filter popover, thumbnail size, file-name visibility, import, export, and settings controls. Sort and grid/list preferences are stored in renderer `localStorage`.
+
+The filter popover combines high-level library/favorites/trash/duplicates modes with advanced asset filters. Applying a draft updates the query once and clears selection so batch actions cannot accidentally target stale assets.
+
+The collection manager is renderer UI over main-process collection APIs. It supports create, search, rename, description edit, color edit, explicit cover assignment from the active/selected asset, explicit cover clearing, and collection deletion. Deleting a collection removes collection membership rows through SQLite cascades; it never deletes asset records or library files.
+
+Collection cover thumbnails prefer an explicit active cover asset. When no explicit cover is set, the UI falls back to the first active asset in collection order.
+
 ## Viewer And Toolbar UX
 
-The toolbar filter icon opens a small anchored popover for library, favorites, trash, duplicate review, apply, and clear-all actions. The popover is kept outside text-selection behavior, can be closed with Escape or outside click, and avoids the toolbar icon-button styles that caused vertical button labels. The grid/list icon remains disabled with a pending tooltip until a list view exists.
+The toolbar filter icon opens a small anchored popover for library, favorites, trash, duplicate review, apply, and clear-all actions. The popover is kept outside text-selection behavior, can be closed with Escape or outside click, and avoids the toolbar icon-button styles that caused vertical button labels. The grid/list icon now switches the current asset presentation immediately while preserving the loaded query window and selection model.
 
 Asset tiles show an explicit selected badge at the card top-right plus selected border/background styling. Double-clicking a tile, pressing Enter/Space on a focused tile, or clicking the inspector preview opens the large image viewer. The viewer supports previous/next navigation, mouse-wheel zoom, drag pan, reset-to-fit, and Escape close. Image drag uses `draggable={false}` and window-level mouseup handling so pan ends even when the pointer leaves the image.
 
@@ -138,7 +156,6 @@ Metadata merge unions tags and collection membership, combines memo text with so
 ## Next TODO
 
 - Persist user settings in the `settings` table and add a settings migration if needed.
-- Add collection rename, color edit, and delete UI.
 - Add true virtualized scrolling if infinite pagination eventually allows too many loaded cards after very long sessions.
 - Add locale coverage checks for future non-renderer resources if export presets gain more nested metadata.
 - Revisit Electron/Vite major upgrades once native rebuild and packaging behavior are tested.

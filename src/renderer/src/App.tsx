@@ -34,6 +34,7 @@ import {
   Heart,
   Image,
   Layers,
+  List,
   Maximize2,
   Plus,
   RotateCcw,
@@ -47,7 +48,7 @@ import {
   ZoomOut,
   X
 } from 'lucide-react';
-import type { AssetRecord, DuplicateGroup, ExportInput, ExportPreset, SmartFolderCondition } from '@shared/types';
+import type { AssetFilters, AssetRecord, AssetSort, CollectionRecord, DuplicateGroup, ExportInput, ExportPreset, SmartFolderCondition } from '@shared/types';
 import { SUPPORTED_LANGUAGES } from '@shared/i18n/languages';
 import type { LanguagePreference } from '@shared/i18n/types';
 import brandIconUrl from '@brand/icon.svg';
@@ -61,6 +62,21 @@ import {
   type DragSelectionState
 } from './selection-utils';
 import styles from './App.module.css';
+
+const EMPTY_FILTERS: AssetFilters = {};
+const ASSET_SORT_OPTIONS: Array<{ id: string; sort: AssetSort }> = [
+  { id: 'importedAt-desc', sort: { field: 'importedAt', direction: 'desc' } },
+  { id: 'importedAt-asc', sort: { field: 'importedAt', direction: 'asc' } },
+  { id: 'title-asc', sort: { field: 'title', direction: 'asc' } },
+  { id: 'title-desc', sort: { field: 'title', direction: 'desc' } },
+  { id: 'sizeBytes-desc', sort: { field: 'sizeBytes', direction: 'desc' } },
+  { id: 'sizeBytes-asc', sort: { field: 'sizeBytes', direction: 'asc' } },
+  { id: 'pixelCount-desc', sort: { field: 'pixelCount', direction: 'desc' } },
+  { id: 'pixelCount-asc', sort: { field: 'pixelCount', direction: 'asc' } },
+  { id: 'rating-desc', sort: { field: 'rating', direction: 'desc' } },
+  { id: 'rating-asc', sort: { field: 'rating', direction: 'asc' } },
+  { id: 'extension-asc', sort: { field: 'extension', direction: 'asc' } }
+];
 
 export function App(): JSX.Element {
   const { t } = useTranslation('common');
@@ -399,6 +415,7 @@ function Sidebar(): JSX.Element {
   const selectedIds = useRefForgeStore((state) => state.selectedIds);
   const [collectionName, setCollectionName] = useState('');
   const [tagManagerOpen, setTagManagerOpen] = useState(false);
+  const [collectionManagerOpen, setCollectionManagerOpen] = useState(false);
   const [hideUnusedTags, setHideUnusedTags] = useState(() => window.localStorage.getItem('refForge:hideUnusedTags') === 'true');
   const [smartForm, setSmartForm] = useState({
     name: '',
@@ -510,7 +527,10 @@ function Sidebar(): JSX.Element {
           <option value="favorite">{t('smartFolder.fields.favorite')}</option>
           <option value="tag">{t('smartFolder.fields.tag')}</option>
           <option value="extension">{t('smartFolder.fields.extension')}</option>
+          <option value="mediaType">{t('smartFolder.fields.mediaType')}</option>
           <option value="orientation">{t('smartFolder.fields.orientation')}</option>
+          <option value="width">{t('smartFolder.fields.width')}</option>
+          <option value="height">{t('smartFolder.fields.height')}</option>
           <option value="recentDays">{t('smartFolder.fields.recentDays')}</option>
           <option value="memo">{t('smartFolder.fields.memo')}</option>
           <option value="sourceUrl">{t('smartFolder.fields.sourceUrl')}</option>
@@ -576,17 +596,22 @@ function Sidebar(): JSX.Element {
 
       <div className={styles.sideHeader}>
         <span>{t('sidebar.collections')}</span>
-        <button
-          title={t('sidebar.createCollection')}
-          onClick={() => {
-            if (collectionName.trim()) {
-              void createCollection(collectionName.trim());
-              setCollectionName('');
-            }
-          }}
-        >
-          <Plus size={14} />
-        </button>
+        <div className={styles.sideHeaderActions}>
+          <button title={t('collectionManager.open')} onClick={() => setCollectionManagerOpen(true)}>
+            <Layers size={14} />
+          </button>
+          <button
+            title={t('sidebar.createCollection')}
+            onClick={() => {
+              if (collectionName.trim()) {
+                void createCollection(collectionName.trim());
+                setCollectionName('');
+              }
+            }}
+          >
+            <Plus size={14} />
+          </button>
+        </div>
       </div>
       <form
         className={styles.sidebarForm}
@@ -628,6 +653,7 @@ function Sidebar(): JSX.Element {
         ))}
       </div>
       {tagManagerOpen ? <TagManagerDialog onClose={() => setTagManagerOpen(false)} /> : null}
+      {collectionManagerOpen ? <CollectionManagerDialog onClose={() => setCollectionManagerOpen(false)} /> : null}
     </aside>
   );
 }
@@ -646,8 +672,12 @@ function Toolbar(): JSX.Element {
   const trashOnly = useRefForgeStore((state) => state.trashOnly);
   const gridThumbnailSize = useRefForgeStore((state) => state.gridThumbnailSize);
   const showFileNames = useRefForgeStore((state) => state.showFileNames);
+  const viewMode = useRefForgeStore((state) => state.viewMode);
+  const assetSort = useRefForgeStore((state) => state.assetSort);
   const setGridThumbnailSize = useRefForgeStore((state) => state.setGridThumbnailSize);
   const setShowFileNames = useRefForgeStore((state) => state.setShowFileNames);
+  const setAssetViewMode = useRefForgeStore((state) => state.setAssetViewMode);
+  const setAssetSort = useRefForgeStore((state) => state.setAssetSort);
   const filterButtonRef = useRef<HTMLButtonElement | null>(null);
   const [searchDraft, setSearchDraft] = useState(search);
   const [exportOpen, setExportOpen] = useState(false);
@@ -680,6 +710,18 @@ function Toolbar(): JSX.Element {
       </div>
       <div className={styles.gridControls}>
         <span>{t('toolbar.selectedCount', { count: selectedIds.length })}</span>
+        <select
+          className={styles.sortSelect}
+          title={t('sort.title')}
+          value={serializeAssetSort(assetSort)}
+          onChange={(event) => setAssetSort(parseAssetSort(event.target.value))}
+        >
+          {ASSET_SORT_OPTIONS.map((option) => (
+            <option key={option.id} value={option.id}>
+              {t(`sort.options.${option.id}`)}
+            </option>
+          ))}
+        </select>
         <input
           title={t('toolbar.thumbnailSize')}
           type="range"
@@ -710,8 +752,11 @@ function Toolbar(): JSX.Element {
         >
           <Filter size={17} />
         </button>
-        <button title={t('toolbar.listViewPending')} disabled>
-          <Grid2X2 size={17} />
+        <button
+          title={viewMode === 'grid' ? t('toolbar.listView') : t('toolbar.gridView')}
+          onClick={() => setAssetViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+        >
+          {viewMode === 'grid' ? <List size={17} /> : <Grid2X2 size={17} />}
         </button>
         <button title={t('toolbar.openLibrary')} onClick={() => setRecentOpen(true)}>
           <FolderOpen size={17} />
@@ -784,6 +829,8 @@ function GridStatusBar(): JSX.Element {
   const favoriteOnly = useRefForgeStore((state) => state.favoriteOnly);
   const trashOnly = useRefForgeStore((state) => state.trashOnly);
   const duplicateOnly = useRefForgeStore((state) => state.duplicateOnly);
+  const assetSort = useRefForgeStore((state) => state.assetSort);
+  const assetFilters = useRefForgeStore((state) => state.assetFilters);
   const viewName = getViewName(
     {
       duplicateOnly,
@@ -808,6 +855,8 @@ function GridStatusBar(): JSX.Element {
         })}
       </span>
       {search.trim() ? <span>{t('assetGrid.searchApplied', { search })}</span> : null}
+      <span>{t('sort.current', { sort: t(`sort.options.${serializeAssetSort(assetSort)}`) })}</span>
+      <span>{t('filter.activeSummary', { count: countAssetFilters(assetFilters) })}</span>
     </div>
   );
 }
@@ -828,7 +877,9 @@ function FilterPopover({
   const favoriteOnly = useRefForgeStore((state) => state.favoriteOnly);
   const trashOnly = useRefForgeStore((state) => state.trashOnly);
   const duplicateOnly = useRefForgeStore((state) => state.duplicateOnly);
-  const setViewModeFilter = useRefForgeStore((state) => state.setViewModeFilter);
+  const assetFilters = useRefForgeStore((state) => state.assetFilters);
+  const tags = useRefForgeStore((state) => state.tags);
+  const applyAssetFilterDraft = useRefForgeStore((state) => state.applyAssetFilterDraft);
   const clearFilters = useRefForgeStore((state) => state.clearFilters);
   const [viewMode, setViewMode] = useState<'library' | 'favorites' | 'trash' | 'duplicates'>(() => {
     if (trashOnly) {
@@ -842,6 +893,10 @@ function FilterPopover({
     }
     return 'library';
   });
+  const [filterDraft, setFilterDraft] = useState<AssetFilters>(assetFilters);
+  const [extensionDraft, setExtensionDraft] = useState((assetFilters.extensions ?? []).join(', '));
+  const includeTagId = filterDraft.includeTagIds?.[0] ?? '';
+  const excludeTagId = filterDraft.excludeTagIds?.[0] ?? '';
   const activeCount = [
     search.trim(),
     tagId,
@@ -851,6 +906,7 @@ function FilterPopover({
     trashOnly,
     duplicateOnly
   ].filter(Boolean).length;
+  const filterCount = activeCount + countAssetFilters(assetFilters);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
@@ -876,7 +932,7 @@ function FilterPopover({
       <div className={styles.modalHeader}>
         <div>
           <h2>{t('filter.title')}</h2>
-          <span>{t('filter.activeSummary', { count: activeCount })}</span>
+          <span>{t('filter.activeSummary', { count: filterCount })}</span>
         </div>
         <button type="button" title={t('actions.close')} onClick={onClose}>
           <X size={18} />
@@ -890,6 +946,150 @@ function FilterPopover({
             {t(`filter.viewModes.${mode}`)}
           </label>
         ))}
+        <label>
+          {t('filter.extensions')}
+          <input
+            value={extensionDraft}
+            onChange={(event) => setExtensionDraft(event.target.value)}
+            placeholder={t('filter.extensionsPlaceholder')}
+          />
+        </label>
+        <label>
+          {t('filter.minRating')}
+          <select
+            value={filterDraft.minRating ?? ''}
+            onChange={(event) =>
+              setFilterDraft((current) => ({
+                ...current,
+                minRating: event.target.value ? Number(event.target.value) : null
+              }))
+            }
+          >
+            <option value="">{t('filter.any')}</option>
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <option key={rating} value={rating}>
+                {t('filter.ratingAtLeast', { rating })}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {t('filter.includeTag')}
+          <select
+            value={includeTagId}
+            onChange={(event) =>
+              setFilterDraft((current) => ({ ...current, includeTagIds: event.target.value ? [event.target.value] : [] }))
+            }
+          >
+            <option value="">{t('filter.any')}</option>
+            {tags.map((tag) => (
+              <option key={tag.id} value={tag.id}>
+                {tag.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {t('filter.excludeTag')}
+          <select
+            value={excludeTagId}
+            onChange={(event) =>
+              setFilterDraft((current) => ({ ...current, excludeTagIds: event.target.value ? [event.target.value] : [] }))
+            }
+          >
+            <option value="">{t('filter.none')}</option>
+            {tags.map((tag) => (
+              <option key={tag.id} value={tag.id}>
+                {tag.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {t('filter.aspect')}
+          <select
+            value={filterDraft.aspect ?? ''}
+            onChange={(event) =>
+              setFilterDraft((current) => ({
+                ...current,
+                aspect: event.target.value ? (event.target.value as AssetFilters['aspect']) : null
+              }))
+            }
+          >
+            <option value="">{t('filter.any')}</option>
+            <option value="landscape">{t('smartFolder.values.landscape')}</option>
+            <option value="portrait">{t('smartFolder.values.portrait')}</option>
+            <option value="square">{t('smartFolder.values.square')}</option>
+          </select>
+        </label>
+        <div className={styles.filterNumberGrid}>
+          <label>
+            {t('filter.minWidth')}
+            <input
+              type="number"
+              min="0"
+              value={filterDraft.minWidth ?? ''}
+              onChange={(event) =>
+                setFilterDraft((current) => ({
+                  ...current,
+                  minWidth: event.target.value ? Number(event.target.value) : null
+                }))
+              }
+            />
+          </label>
+          <label>
+            {t('filter.minHeight')}
+            <input
+              type="number"
+              min="0"
+              value={filterDraft.minHeight ?? ''}
+              onChange={(event) =>
+                setFilterDraft((current) => ({
+                  ...current,
+                  minHeight: event.target.value ? Number(event.target.value) : null
+                }))
+              }
+            />
+          </label>
+        </div>
+        <label>
+          {t('filter.recentDays')}
+          <input
+            type="number"
+            min="1"
+            value={filterDraft.recentDays ?? ''}
+            onChange={(event) =>
+              setFilterDraft((current) => ({
+                ...current,
+                recentDays: event.target.value ? Number(event.target.value) : null
+              }))
+            }
+          />
+        </label>
+        <label className={styles.checkControl}>
+          <input
+            type="checkbox"
+            checked={Boolean(filterDraft.favoriteOnly)}
+            onChange={(event) => setFilterDraft((current) => ({ ...current, favoriteOnly: event.target.checked }))}
+          />
+          {t('filter.favoritesOnly')}
+        </label>
+        <label className={styles.checkControl}>
+          <input
+            type="checkbox"
+            checked={Boolean(filterDraft.hasMemo)}
+            onChange={(event) => setFilterDraft((current) => ({ ...current, hasMemo: event.target.checked }))}
+          />
+          {t('filter.hasMemo')}
+        </label>
+        <label className={styles.checkControl}>
+          <input
+            type="checkbox"
+            checked={Boolean(filterDraft.hasSourceUrl)}
+            onChange={(event) => setFilterDraft((current) => ({ ...current, hasSourceUrl: event.target.checked }))}
+          />
+          {t('filter.hasSourceUrl')}
+        </label>
       </div>
 
       <div className={styles.filterActions}>
@@ -898,6 +1098,8 @@ function FilterPopover({
           className={styles.secondaryButton}
           onClick={() => {
             clearFilters();
+            setFilterDraft(EMPTY_FILTERS);
+            setExtensionDraft('');
             onClose();
           }}
         >
@@ -908,7 +1110,7 @@ function FilterPopover({
           type="button"
           className={styles.primaryButton}
           onClick={() => {
-            void setViewModeFilter(viewMode);
+            void applyAssetFilterDraft(viewMode, normalizeAssetFilters({ ...filterDraft, extensions: parseCsv(extensionDraft) }));
             onClose();
           }}
         >
@@ -939,20 +1141,32 @@ function AssetGrid(): JSX.Element {
   const favoriteOnly = useRefForgeStore((state) => state.favoriteOnly);
   const trashOnly = useRefForgeStore((state) => state.trashOnly);
   const duplicateOnly = useRefForgeStore((state) => state.duplicateOnly);
+  const viewMode = useRefForgeStore((state) => state.viewMode);
+  const assetSort = useRefForgeStore((state) => state.assetSort);
+  const assetFilters = useRefForgeStore((state) => state.assetFilters);
   const gridThumbnailSize = useRefForgeStore((state) => state.gridThumbnailSize);
   const showFileNames = useRefForgeStore((state) => state.showFileNames);
   const gridSurfaceRef = useRef<HTMLElement | null>(null);
   const tileRefs = useRef(new Map<string, HTMLButtonElement>());
   const [dragActive, setDragActive] = useState(false);
   const [dragSelection, setDragSelection] = useState<DragSelectionState | null>(null);
-  const hasActiveFilter = Boolean(search.trim() || tagId || collectionId || smartFolderId || favoriteOnly || trashOnly || duplicateOnly);
+  const hasActiveFilter = Boolean(
+    search.trim() ||
+      tagId ||
+      collectionId ||
+      smartFolderId ||
+      favoriteOnly ||
+      trashOnly ||
+      duplicateOnly ||
+      countAssetFilters(assetFilters) > 0
+  );
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
   useEffect(() => {
     if (gridSurfaceRef.current) {
       gridSurfaceRef.current.scrollTop = 0;
     }
-  }, [collectionId, duplicateOnly, favoriteOnly, search, smartFolderId, tagId, trashOnly]);
+  }, [assetFilters, assetSort, collectionId, duplicateOnly, favoriteOnly, search, smartFolderId, tagId, trashOnly, viewMode]);
 
   const handleScroll = (event: UIEvent<HTMLElement>): void => {
     const target = event.currentTarget;
@@ -1045,7 +1259,7 @@ function AssetGrid(): JSX.Element {
       onDragLeave={() => setDragActive(false)}
       onDragOver={(event) => event.preventDefault()}
       onDrop={handleDrop}
-      onPointerDown={handleSelectionPointerDown}
+      onPointerDown={viewMode === 'grid' ? handleSelectionPointerDown : undefined}
       onScroll={handleScroll}
     >
       {duplicateOnly ? <DuplicateResolutionCenter groups={duplicateGroups} /> : null}
@@ -1059,6 +1273,8 @@ function AssetGrid(): JSX.Element {
               : t('assetGrid.emptyDescription')}
           </p>
         </div>
+      ) : viewMode === 'list' ? (
+        <AssetList assets={assets} selectedSet={selectedSet} onSelect={selectAsset} />
       ) : (
         <div
           className={styles.assetGrid}
@@ -1094,6 +1310,113 @@ function AssetGrid(): JSX.Element {
       {dragActive ? <div className={styles.dropOverlay}>{t('assetGrid.dropOverlay')}</div> : null}
       {importing || loading ? <div className={styles.busyStrip}>{importing ? t('assetGrid.importing') : t('assetGrid.loading')}</div> : null}
     </section>
+  );
+}
+
+function AssetList({
+  assets,
+  selectedSet,
+  onSelect
+}: {
+  assets: AssetRecord[];
+  selectedSet: Set<string>;
+  onSelect: (assetId: string, mode?: 'replace' | 'toggle' | 'range') => void;
+}): JSX.Element {
+  const { t, i18n: i18nInstance } = useTranslation('common');
+  const assetSort = useRefForgeStore((state) => state.assetSort);
+  const setAssetSort = useRefForgeStore((state) => state.setAssetSort);
+
+  return (
+    <div className={styles.assetList}>
+      <div className={styles.assetListHeader}>
+        <span>{t('list.columns.preview')}</span>
+        <button onClick={() => setAssetSort(toggleSort(assetSort, 'title'))}>{t('list.columns.name')}</button>
+        <button onClick={() => setAssetSort(toggleSort(assetSort, 'extension'))}>{t('list.columns.extension')}</button>
+        <button onClick={() => setAssetSort(toggleSort(assetSort, 'sizeBytes'))}>{t('list.columns.size')}</button>
+        <button onClick={() => setAssetSort(toggleSort(assetSort, 'pixelCount'))}>{t('list.columns.dimensions')}</button>
+        <span>{t('list.columns.ratio')}</span>
+        <button onClick={() => setAssetSort(toggleSort(assetSort, 'rating'))}>{t('list.columns.rating')}</button>
+        <span>{t('list.columns.favorite')}</span>
+        <span>{t('list.columns.tags')}</span>
+        <span>{t('list.columns.collections')}</span>
+        <button onClick={() => setAssetSort(toggleSort(assetSort, 'importedAt'))}>{t('list.columns.imported')}</button>
+        <span>{t('list.columns.source')}</span>
+      </div>
+      {assets.map((asset) => (
+        <AssetListRow
+          key={asset.id}
+          asset={asset}
+          selected={selectedSet.has(asset.id)}
+          language={i18nInstance.language}
+          onSelect={onSelect}
+        />
+      ))}
+    </div>
+  );
+}
+
+function AssetListRow({
+  asset,
+  selected,
+  language,
+  onSelect
+}: {
+  asset: AssetRecord;
+  selected: boolean;
+  language: string;
+  onSelect: (assetId: string, mode?: 'replace' | 'toggle' | 'range') => void;
+}): JSX.Element {
+  const { t } = useTranslation('common');
+  const openViewer = useRefForgeStore((state) => state.openViewer);
+  const [imageFailed, setImageFailed] = useState(false);
+  const modeFromEvent = (event: { shiftKey: boolean; metaKey: boolean; ctrlKey: boolean }): 'replace' | 'toggle' | 'range' =>
+    event.shiftKey ? 'range' : event.metaKey || event.ctrlKey ? 'toggle' : 'replace';
+
+  return (
+    <button
+      className={[
+        styles.assetListRow,
+        selected ? styles.assetListRowSelected : '',
+        asset.isFavorite ? styles.assetListRowFavorite : '',
+        asset.isDeleted ? styles.assetListRowDeleted : ''
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      onClick={(event) => onSelect(asset.id, modeFromEvent(event))}
+      onDoubleClick={() => openViewer(asset.id)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          event.stopPropagation();
+          onSelect(asset.id, 'replace');
+          openViewer(asset.id);
+        }
+      }}
+      title={asset.originalRelativePath ?? asset.originalFileName}
+      data-asset-tile="true"
+    >
+      <span className={styles.listThumb}>
+        {asset.thumbnailUrl && !imageFailed ? (
+          <img src={asset.thumbnailUrl} alt={asset.title} loading="lazy" draggable={false} onError={() => setImageFailed(true)} />
+        ) : (
+          <Image size={20} />
+        )}
+      </span>
+      <span className={styles.listTitle}>
+        <strong>{asset.title}</strong>
+        <small>{asset.originalFileName}</small>
+      </span>
+      <span>{asset.extension.toUpperCase()}</span>
+      <span>{formatBytes(asset.sizeBytes, language)}</span>
+      <span>{asset.width && asset.height ? `${asset.width}x${asset.height}` : t('status.unknown')}</span>
+      <span>{formatRatio(asset.width, asset.height, t)}</span>
+      <span>{t('assetGrid.ratingCompact', { rating: asset.rating })}</span>
+      <span>{asset.isFavorite ? t('status.enabled') : t('status.disabled')}</span>
+      <span className={styles.listPills}>{formatTagSummary(asset.tags, t)}</span>
+      <span>{asset.collections.length}</span>
+      <span>{formatDateTime(asset.importedAt, language)}</span>
+      <span className={styles.listPath}>{asset.originalRelativePath ?? t('status.none')}</span>
+    </button>
   );
 }
 
@@ -1323,6 +1646,154 @@ function TagManagerDialog({ onClose }: { onClose: () => void }): JSX.Element {
           })}
         </div>
       </section>
+    </div>
+  );
+}
+
+function CollectionManagerDialog({ onClose }: { onClose: () => void }): JSX.Element {
+  const { t } = useTranslation('common');
+  const collections = useRefForgeStore((state) => state.collections);
+  const selectedIds = useRefForgeStore((state) => state.selectedIds);
+  const activeAssetId = useRefForgeStore((state) => state.activeAssetId);
+  const createCollection = useRefForgeStore((state) => state.createCollection);
+  const updateCollection = useRefForgeStore((state) => state.updateCollection);
+  const deleteCollection = useRefForgeStore((state) => state.deleteCollection);
+  const [search, setSearch] = useState('');
+  const [newCollectionName, setNewCollectionName] = useState('');
+  const coverCandidateId = selectedIds[0] ?? activeAssetId;
+  const filteredCollections = collections.filter((collection) => {
+    const query = search.trim().toLowerCase();
+    return !query || collection.name.toLowerCase().includes(query) || collection.description.toLowerCase().includes(query);
+  });
+
+  return (
+    <div className={styles.modalBackdrop}>
+      <section className={styles.managementDialog}>
+        <div className={styles.modalHeader}>
+          <div>
+            <h2>{t('collectionManager.title')}</h2>
+            <span>{t('collectionManager.subtitle')}</span>
+          </div>
+          <button type="button" title={t('actions.close')} onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className={styles.managementToolbar}>
+          <form
+            className={styles.managerCreateForm}
+            onSubmit={(event) => {
+              event.preventDefault();
+              const name = newCollectionName.trim();
+              if (name) {
+                void createCollection(name);
+                setNewCollectionName('');
+              }
+            }}
+          >
+            <input
+              value={newCollectionName}
+              onChange={(event) => setNewCollectionName(event.target.value)}
+              placeholder={t('sidebar.newCollection')}
+            />
+            <button title={t('sidebar.createCollection')} disabled={!newCollectionName.trim()}>
+              <Plus size={15} />
+            </button>
+          </form>
+          <div className={styles.searchBox}>
+            <Search size={17} />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('collectionManager.search')} />
+          </div>
+        </div>
+
+        <div className={styles.managerList}>
+          {filteredCollections.length === 0 ? <div className={styles.miniEmpty}>{t('collectionManager.empty')}</div> : null}
+          {filteredCollections.map((collection) => (
+            <CollectionManagerRow
+              key={collection.id}
+              collection={collection}
+              coverCandidateId={coverCandidateId}
+              onUpdate={updateCollection}
+              onDelete={deleteCollection}
+            />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function CollectionManagerRow({
+  collection,
+  coverCandidateId,
+  onUpdate,
+  onDelete
+}: {
+  collection: CollectionRecord;
+  coverCandidateId: string | null;
+  onUpdate: (input: { id: string; name?: string; description?: string; color?: string; coverAssetId?: string | null }) => void;
+  onDelete: (id: string) => void;
+}): JSX.Element {
+  const { t } = useTranslation('common');
+  return (
+    <div className={styles.collectionManagerRow}>
+      <span className={styles.collectionCover}>
+        {collection.coverAssetThumbnailUrl ? (
+          <img src={collection.coverAssetThumbnailUrl} alt={collection.coverAssetTitle ?? collection.name} />
+        ) : (
+          <Layers size={20} />
+        )}
+      </span>
+      <input
+        defaultValue={collection.name}
+        onBlur={(event) => {
+          const name = event.target.value.trim();
+          if (name && name !== collection.name) {
+            onUpdate({ id: collection.id, name });
+          }
+        }}
+      />
+      <input
+        defaultValue={collection.description}
+        onBlur={(event) => {
+          if (event.target.value !== collection.description) {
+            onUpdate({ id: collection.id, description: event.target.value });
+          }
+        }}
+        placeholder={t('collectionManager.description')}
+      />
+      <input type="color" value={collection.color} onChange={(event) => onUpdate({ id: collection.id, color: event.target.value })} />
+      <span>{t('collectionManager.assetCount', { count: collection.assetCount ?? 0 })}</span>
+      <button
+        className={styles.secondaryButton}
+        disabled={!coverCandidateId}
+        onClick={() => {
+          if (coverCandidateId) {
+            onUpdate({ id: collection.id, coverAssetId: coverCandidateId });
+          }
+        }}
+      >
+        <Image size={15} />
+        {t('collectionManager.setCover')}
+      </button>
+      <button
+        className={styles.secondaryButton}
+        onClick={() => onUpdate({ id: collection.id, coverAssetId: null })}
+        disabled={!collection.coverAssetId}
+      >
+        <RotateCcw size={15} />
+        {t('collectionManager.clearCover')}
+      </button>
+      <button
+        title={t('collectionManager.delete')}
+        onClick={() => {
+          if (window.confirm(t('collectionManager.confirmDelete', { name: collection.name }))) {
+            onDelete(collection.id);
+          }
+        }}
+      >
+        <Trash2 size={14} />
+      </button>
     </div>
   );
 }
@@ -2814,6 +3285,71 @@ function getRecommendationReason(asset: AssetRecord, groupAssets: AssetRecord[],
     reasons.push(t('duplicates.reasonFavorite'));
   }
   return reasons.slice(0, 3).join(', ') || t('duplicates.reasonImported');
+}
+
+function serializeAssetSort(sort: AssetSort): string {
+  return `${sort.field}-${sort.direction}`;
+}
+
+function parseAssetSort(value: string): AssetSort {
+  return ASSET_SORT_OPTIONS.find((option) => option.id === value)?.sort ?? ASSET_SORT_OPTIONS[0].sort;
+}
+
+function toggleSort(current: AssetSort, field: AssetSort['field']): AssetSort {
+  if (current.field === field) {
+    return { field, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+  }
+  const defaultDirection: AssetSort['direction'] =
+    field === 'title' || field === 'extension' || field === 'collectionOrder' ? 'asc' : 'desc';
+  return { field, direction: defaultDirection };
+}
+
+function parseCsv(value: string): string[] {
+  return value
+    .split(',')
+    .map((item) => item.trim().replace(/^\./u, '').toLowerCase())
+    .filter(Boolean);
+}
+
+function normalizeAssetFilters(filters: AssetFilters): AssetFilters {
+  return {
+    ...filters,
+    extensions: filters.extensions?.filter(Boolean),
+    includeTagIds: filters.includeTagIds?.filter(Boolean),
+    excludeTagIds: filters.excludeTagIds?.filter(Boolean),
+    minRating: typeof filters.minRating === 'number' && filters.minRating > 0 ? filters.minRating : null,
+    minWidth: typeof filters.minWidth === 'number' && filters.minWidth > 0 ? filters.minWidth : null,
+    minHeight: typeof filters.minHeight === 'number' && filters.minHeight > 0 ? filters.minHeight : null,
+    recentDays: typeof filters.recentDays === 'number' && filters.recentDays > 0 ? filters.recentDays : null
+  };
+}
+
+function countAssetFilters(filters: AssetFilters): number {
+  return [
+    filters.mediaTypes?.length,
+    filters.extensions?.length,
+    filters.favoriteOnly,
+    filters.minRating,
+    filters.includeTagIds?.length,
+    filters.excludeTagIds?.length,
+    filters.aspect,
+    filters.minWidth,
+    filters.minHeight,
+    filters.hasMemo,
+    filters.hasSourceUrl,
+    filters.recentDays,
+    filters.duplicateOnly,
+    filters.deletedOnly
+  ].filter(Boolean).length;
+}
+
+function formatTagSummary(tags: AssetRecord['tags'], t: TFunction<'common'>): string {
+  if (tags.length === 0) {
+    return t('status.none');
+  }
+  const visibleTags = tags.slice(0, 3).map((tag) => tag.name).join(', ');
+  const remaining = tags.length - 3;
+  return remaining > 0 ? `${visibleTags} ${t('list.moreTags', { count: remaining })}` : visibleTags;
 }
 
 function formatDateTime(value: string, language: string): string {

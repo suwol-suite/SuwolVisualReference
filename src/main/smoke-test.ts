@@ -170,6 +170,71 @@ export async function runSmokeTest(): Promise<void> {
     throw new Error('Batch metadata operations did not persist on the imported asset.');
   }
 
+  const filteredFavoriteAssets = db.queryAssets({
+    filters: {
+      favoriteOnly: true,
+      minRating: 5,
+      extensions: ['PNG'],
+      includeTagIds: [batchTag.id],
+      hasMemo: true,
+      recentDays: 1
+    },
+    sort: { field: 'title', direction: 'asc' },
+    limit: 20
+  });
+  if (
+    !filteredFavoriteAssets.items.some((asset) => asset.id === importedAsset.id) ||
+    filteredFavoriteAssets.items.some(
+      (asset) => !asset.isFavorite || asset.rating < 5 || asset.extension.toLowerCase() !== 'png' || !asset.memo.trim()
+    )
+  ) {
+    throw new Error(`Advanced asset filters did not return the expected favorite PNG assets: ${JSON.stringify(filteredFavoriteAssets)}`);
+  }
+
+  const excludedBatchTagAssets = db.queryAssets({ filters: { excludeTagIds: [batchTag.id] }, limit: 50 });
+  if (excludedBatchTagAssets.items.some((asset) => asset.id === importedAsset.id || asset.id === duplicateAsset.id)) {
+    throw new Error('Exclude-tag asset filter returned assets that still had the excluded tag.');
+  }
+
+  const duplicateOnlyAssets = db.queryAssets({ filters: { duplicateOnly: true }, limit: 20 });
+  if (!duplicateOnlyAssets.items.some((asset) => asset.id === importedAsset.id) || !duplicateOnlyAssets.items.some((asset) => asset.id === duplicateAsset.id)) {
+    throw new Error(`Duplicate-only asset filter missed the active duplicate group: ${JSON.stringify(duplicateOnlyAssets)}`);
+  }
+
+  const sizeSortedAssets = db.queryAssets({ sort: { field: 'sizeBytes', direction: 'desc' }, limit: 20 }).items;
+  for (let index = 1; index < sizeSortedAssets.length; index += 1) {
+    if (sizeSortedAssets[index - 1].sizeBytes < sizeSortedAssets[index].sizeBytes) {
+      throw new Error('Size descending sort returned assets out of order.');
+    }
+  }
+
+  db.updateCollection({
+    id: batchCollection.id,
+    description: 'Updated by organization smoke test.',
+    coverAssetId: importedAsset.id
+  });
+  const collectionWithCover = db.listCollections().find((candidate) => candidate.id === batchCollection.id);
+  if (
+    collectionWithCover?.description !== 'Updated by organization smoke test.' ||
+    collectionWithCover.coverAssetId !== importedAsset.id ||
+    !collectionWithCover.coverAssetThumbnailUrl
+  ) {
+    throw new Error(`Collection cover update did not persist: ${JSON.stringify(collectionWithCover)}`);
+  }
+  const collectionOrderAssets = db.queryAssets({
+    collectionId: batchCollection.id,
+    sort: { field: 'collectionOrder', direction: 'asc' },
+    limit: 10
+  }).items;
+  if (collectionOrderAssets[0]?.id !== importedAsset.id || collectionOrderAssets[1]?.id !== duplicateAsset.id) {
+    throw new Error(`Collection order sort did not preserve insertion order: ${JSON.stringify(collectionOrderAssets)}`);
+  }
+  db.updateCollection({ id: batchCollection.id, coverAssetId: null });
+  const collectionWithFallbackCover = db.listCollections().find((candidate) => candidate.id === batchCollection.id);
+  if (collectionWithFallbackCover?.coverAssetId !== null || !collectionWithFallbackCover?.coverAssetThumbnailUrl) {
+    throw new Error(`Collection fallback cover did not render after clearing the explicit cover: ${JSON.stringify(collectionWithFallbackCover)}`);
+  }
+
   const queryPage = db.queryAssets({ limit: 1, offset: 0 });
   if (queryPage.items.length !== 1 || queryPage.totalCount < 2 || !queryPage.hasMore) {
     throw new Error(`Asset query pagination fields were not returned correctly: ${JSON.stringify(queryPage)}`);

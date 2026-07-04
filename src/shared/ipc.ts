@@ -36,6 +36,7 @@ export const IPC_CHANNELS = {
   collectionsList: 'collections:list',
   collectionsCreate: 'collections:create',
   collectionsUpdate: 'collections:update',
+  collectionsDelete: 'collections:delete',
   collectionsCreateAndAddAssets: 'collections:create-and-add-assets',
   collectionsAddAssets: 'collections:add-assets',
   collectionsRemoveAsset: 'collections:remove-asset',

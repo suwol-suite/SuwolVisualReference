@@ -45,6 +45,10 @@ Thumbnail and palette work are measured per task and run with limited concurrenc
 
 The grid uses paged incremental loading instead of a fixed first page. `queryAssets` returns `items`, `totalCount`, `limit`, `offset`, and `hasMore`; the renderer loads 500 assets at a time and shows total, filtered, loaded, and selected counts in the workspace status bar.
 
+The list view reuses the same paged query window as the grid. It does not load hidden pages just to populate table rows, so switching view mode changes presentation without changing query size.
+
+Sort and filter queries are backed by whitelisted SQL order clauses and targeted indexes for common organization dimensions: imported date, file size, dimensions, collection order, and smart folder update lookup.
+
 The app shell has explicit internal scroll ownership: body remains hidden, the center grid uses `overflow-y: auto`, and sidebar/inspector areas have independent scroll. This fixes the 18k-library issue where wheel input could be swallowed by the three-column layout.
 
 Desktop selection is intentionally scoped to loaded assets. Ctrl+A/Cmd+A and drag-box selection select only the currently loaded/rendered cards, avoiding a large `selectedIds` array for an unloaded 18k filtered result.
@@ -66,6 +70,15 @@ Result:
 - Second page, 500 assets: 36.2 ms, `hasMore: true`
 - Search `ui`, 500 assets: 44.6 ms, 6,349 total results
 - Duplicate group lookup: 27.7 ms, 3 groups
+
+## 2026-07-04 Organization Query Check
+
+The smoke test now exercises the organization query surface on a generated temporary library:
+
+- Structured sort by title and file size.
+- Extension, favorite, minimum rating, included tag, excluded tag, memo, recency, and duplicate-only filters.
+- Collection cover update and fallback cover lookup.
+- Collection-order sorting inside a collection.
 
 ## Remaining Bottlenecks
 

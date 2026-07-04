@@ -62,7 +62,7 @@
     "showFileNames": "Show file names",
     "filter": "Filter",
     "gridView": "Grid view",
-    "listViewPending": "List view is not available yet",
+    "listView": "List view",
     "selectAssetsFirst": "Select assets first",
     "openLibrary": "Open library",
     "importFiles": "Import images",
@@ -81,11 +81,59 @@
     "duplicatesView": "Duplicate resolution view",
     "clear": "Clear filters",
     "apply": "Apply",
+    "any": "Any",
+    "none": "None",
+    "extensions": "Extensions",
+    "extensionsPlaceholder": "png, webp",
+    "minRating": "Minimum rating",
+    "ratingAtLeast": "{{rating}} or higher",
+    "includeTag": "Include tag",
+    "excludeTag": "Exclude tag",
+    "aspect": "Aspect",
+    "minWidth": "Min width",
+    "minHeight": "Min height",
+    "recentDays": "Imported in recent days",
+    "hasMemo": "Has memo",
+    "hasSourceUrl": "Has source URL",
     "viewModes": {
       "library": "Library view",
       "favorites": "Favorites view",
       "trash": "Trash view",
       "duplicates": "Duplicate resolution view"
+    }
+  },
+  "sort": {
+    "title": "Sort",
+    "current": "{{sort}}",
+    "options": {
+      "importedAt-desc": "Newest first",
+      "importedAt-asc": "Oldest first",
+      "title-asc": "Name A-Z",
+      "title-desc": "Name Z-A",
+      "sizeBytes-desc": "Largest file",
+      "sizeBytes-asc": "Smallest file",
+      "pixelCount-desc": "Largest resolution",
+      "pixelCount-asc": "Smallest resolution",
+      "rating-desc": "Highest rating",
+      "rating-asc": "Lowest rating",
+      "extension-asc": "Extension A-Z"
+    }
+  },
+  "list": {
+    "moreTags": "+{{count}}",
+    "columns": {
+      "preview": "Preview",
+      "name": "Name",
+      "extension": "Ext",
+      "size": "Size",
+      "dimensions": "Dimensions",
+      "ratio": "Ratio",
+      "rating": "Rating",
+      "favorite": "Favorite",
+      "tags": "Tags",
+      "collections": "Collections",
+      "imported": "Imported",
+      "source": "Source path"
     }
   },
   "layout": {
@@ -163,6 +211,19 @@
     "confirmDeleteMany": "Delete {{count}} selected tag(s)? Assets will not be deleted.",
     "confirmDeleteUnused": "Delete all unused tags?",
     "confirmMerge": "Merge {{count}} selected tag(s) into the target tag?"
+  },
+  "collectionManager": {
+    "open": "Open collection manager",
+    "title": "Collection Manager",
+    "subtitle": "Rename, color, cover, and remove collections without touching asset files.",
+    "search": "Search collections",
+    "empty": "No collections match this search",
+    "description": "Description",
+    "assetCount": "{{count}} assets",
+    "setCover": "Set cover",
+    "clearCover": "Clear cover",
+    "delete": "Delete collection",
+    "confirmDelete": "Delete the {{name}} collection? Assets will stay in the library."
   },
   "smartFolder": {
     "fields": {

@@ -62,7 +62,7 @@
     "showFileNames": "파일명 표시",
     "filter": "필터",
     "gridView": "그리드 보기",
-    "listViewPending": "리스트 보기는 아직 사용할 수 없습니다",
+    "listView": "리스트 보기",
     "selectAssetsFirst": "먼저 자산을 선택하세요",
     "openLibrary": "라이브러리 열기",
     "importFiles": "이미지 가져오기",
@@ -81,11 +81,59 @@
     "duplicatesView": "중복 해결 보기",
     "clear": "필터 초기화",
     "apply": "적용",
+    "any": "전체",
+    "none": "없음",
+    "extensions": "확장자",
+    "extensionsPlaceholder": "png, webp",
+    "minRating": "최소 별점",
+    "ratingAtLeast": "{{rating}} 이상",
+    "includeTag": "포함할 태그",
+    "excludeTag": "제외할 태그",
+    "aspect": "비율",
+    "minWidth": "최소 너비",
+    "minHeight": "최소 높이",
+    "recentDays": "최근 N일 안에 가져옴",
+    "hasMemo": "메모 있음",
+    "hasSourceUrl": "소스 URL 있음",
     "viewModes": {
       "library": "라이브러리 보기",
       "favorites": "즐겨찾기 보기",
       "trash": "휴지통 보기",
       "duplicates": "중복 해결 보기"
+    }
+  },
+  "sort": {
+    "title": "정렬",
+    "current": "{{sort}}",
+    "options": {
+      "importedAt-desc": "최근 추가순",
+      "importedAt-asc": "오래된 순",
+      "title-asc": "이름 오름차순",
+      "title-desc": "이름 내림차순",
+      "sizeBytes-desc": "파일 크기 큰 순",
+      "sizeBytes-asc": "파일 크기 작은 순",
+      "pixelCount-desc": "해상도 큰 순",
+      "pixelCount-asc": "해상도 작은 순",
+      "rating-desc": "별점 높은 순",
+      "rating-asc": "별점 낮은 순",
+      "extension-asc": "확장자순"
+    }
+  },
+  "list": {
+    "moreTags": "+{{count}}",
+    "columns": {
+      "preview": "미리보기",
+      "name": "이름",
+      "extension": "확장자",
+      "size": "크기",
+      "dimensions": "해상도",
+      "ratio": "비율",
+      "rating": "별점",
+      "favorite": "즐겨찾기",
+      "tags": "태그",
+      "collections": "컬렉션",
+      "imported": "가져온 날짜",
+      "source": "원본 경로"
     }
   },
   "layout": {
@@ -163,6 +211,19 @@
     "confirmDeleteMany": "선택한 태그 {{count}}개를 삭제할까요? 자산은 삭제되지 않습니다.",
     "confirmDeleteUnused": "사용하지 않는 태그를 모두 삭제할까요?",
     "confirmMerge": "선택한 태그 {{count}}개를 대상 태그로 병합할까요?"
+  },
+  "collectionManager": {
+    "open": "컬렉션 관리자 열기",
+    "title": "컬렉션 관리자",
+    "subtitle": "자산 파일은 건드리지 않고 컬렉션 이름, 색상, 커버, 삭제를 관리합니다.",
+    "search": "컬렉션 검색",
+    "empty": "검색 조건에 맞는 컬렉션이 없습니다",
+    "description": "설명",
+    "assetCount": "{{count}}개 자산",
+    "setCover": "커버 지정",
+    "clearCover": "커버 해제",
+    "delete": "컬렉션 삭제",
+    "confirmDelete": "{{name}} 컬렉션을 삭제할까요? 자산은 라이브러리에 남습니다."
   },
   "smartFolder": {
     "fields": {

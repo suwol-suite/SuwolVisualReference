@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Added
+
+- Dense asset list view with sortable columns and preserved desktop selection behavior.
+- Structured asset sort options for imported date, name, size, resolution, rating, extension, and collection order.
+- Advanced asset filters for extension, rating, included/excluded tags, aspect, minimum dimensions, memo, source URL, recency, favorites, duplicates, and deleted assets.
+- Collection manager for create, rename, description edit, color edit, cover assignment, cover clearing, and collection deletion.
+- Collection cover fallback thumbnails and database indexes for large-library organization queries.
+
+### Changed
+
+- Toolbar and status bar now expose current sort and active filter state.
+- Smart folder condition UI includes media type, width, and height fields.
+- Smoke coverage now checks organization queries, collection covers, and collection-order sorting.
+
 ## 0.1.2 - 2026-07-04
 
 ### Added

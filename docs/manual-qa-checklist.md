@@ -36,6 +36,9 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Scroll a large library.
 - [ ] Load more assets with pagination.
 - [ ] Search by filename, tag, memo, extension, or URL.
+- [ ] Switch between grid view and list view.
+- [ ] Sort by imported date, name, file size, resolution, rating, and extension.
+- [ ] Use advanced filters for extension, rating, included/excluded tag, aspect, dimensions, memo, source URL, recency, favorites, duplicates, and trash/deleted state.
 - [ ] Switch between library, favorites, trash, duplicates, tag, collection, and smart folder views.
 - [ ] Open the filter popover, use Apply and Clear, close it with ESC, and close it by clicking outside.
 
@@ -61,7 +64,9 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Edit memo, source URL, rating, and favorite state.
 - [ ] Create a collection.
 - [ ] Add selected assets to a collection.
+- [ ] Use the collection manager to rename, recolor, edit description, set/clear cover, and delete a collection.
 - [ ] Create and use a smart folder.
+- [ ] Create smart folder conditions with media type, width, and height fields.
 
 ## Safety Workflows
 

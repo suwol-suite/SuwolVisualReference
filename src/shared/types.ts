@@ -66,6 +66,9 @@ export type CollectionRecord = {
   name: string;
   description: string;
   color: string;
+  coverAssetId: string | null;
+  coverAssetThumbnailUrl: string | null;
+  coverAssetTitle: string | null;
   assetCount?: number;
   createdAt: string;
   updatedAt: string;
@@ -125,6 +128,52 @@ export type AssetUpdateInput = {
   isFavorite?: boolean;
 };
 
+export type AssetSortField =
+  | 'importedAt'
+  | 'title'
+  | 'sizeBytes'
+  | 'pixelCount'
+  | 'rating'
+  | 'extension'
+  | 'collectionOrder';
+
+export type SortDirection = 'asc' | 'desc';
+
+export type AssetSort = {
+  field: AssetSortField;
+  direction: SortDirection;
+};
+
+export type AssetFilters = {
+  mediaTypes?: string[];
+  extensions?: string[];
+  favoriteOnly?: boolean;
+  minRating?: number | null;
+  includeTagIds?: string[];
+  excludeTagIds?: string[];
+  aspect?: 'portrait' | 'landscape' | 'square' | null;
+  minWidth?: number | null;
+  minHeight?: number | null;
+  hasMemo?: boolean;
+  hasSourceUrl?: boolean;
+  recentDays?: number | null;
+  duplicateOnly?: boolean;
+  deletedOnly?: boolean;
+};
+
+export type LegacyAssetSort =
+  | 'importedDesc'
+  | 'importedAsc'
+  | 'titleAsc'
+  | 'titleDesc'
+  | 'ratingDesc'
+  | 'ratingAsc'
+  | 'sizeDesc'
+  | 'sizeAsc'
+  | 'extensionAsc'
+  | 'pixelCountDesc'
+  | 'pixelCountAsc';
+
 export type AssetListQuery = {
   libraryId?: string;
   viewMode?: 'library' | 'favorites' | 'trash' | 'duplicates' | 'collection' | 'smartFolder' | 'tag';
@@ -138,8 +187,8 @@ export type AssetListQuery = {
   trashOnly?: boolean;
   isDeleted?: boolean;
   duplicateOnly?: boolean;
-  filters?: Record<string, string | number | boolean | null>;
-  sort?: 'importedDesc' | 'importedAsc' | 'titleAsc' | 'titleDesc' | 'ratingDesc' | 'sizeDesc';
+  filters?: AssetFilters;
+  sort?: AssetSort | LegacyAssetSort;
   limit?: number;
   offset?: number;
 };

@@ -88,8 +88,9 @@ const api = {
   listCollections: (): Promise<CollectionRecord[]> => ipcRenderer.invoke(IPC_CHANNELS.collectionsList),
   createCollection: (input: { name: string; description?: string; color?: string }): Promise<CollectionRecord> =>
     ipcRenderer.invoke(IPC_CHANNELS.collectionsCreate, input),
-  updateCollection: (input: { id: string; name?: string; description?: string; color?: string }): Promise<CollectionRecord> =>
+  updateCollection: (input: { id: string; name?: string; description?: string; color?: string; coverAssetId?: string | null }): Promise<CollectionRecord> =>
     ipcRenderer.invoke(IPC_CHANNELS.collectionsUpdate, input),
+  deleteCollection: (id: string): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.collectionsDelete, id),
   createCollectionAndAddAssets: (input: CollectionCreateAndAddAssetsInput): Promise<CollectionCreateAndAddAssetsResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.collectionsCreateAndAddAssets, input),
   addAssetsToCollection: (input: { collectionId: string; assetIds: string[] }): Promise<CollectionRecord> =>

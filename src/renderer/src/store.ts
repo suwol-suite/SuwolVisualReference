@@ -2,10 +2,12 @@ import { create } from 'zustand';
 import type { LanguagePreference } from '@shared/i18n/types';
 import type {
   AppConfig,
+  AssetFilters,
   AssetBatchOperationResult,
   AssetListQuery,
   AssetPermanentDeleteResult,
   AssetRecord,
+  AssetSort,
   CollectionRecord,
   DuplicateGroup,
   DuplicateGroupQuery,
@@ -31,6 +33,8 @@ import {
 } from './selection-utils';
 
 const ASSET_PAGE_SIZE = 500;
+const DEFAULT_ASSET_SORT: AssetSort = { field: 'importedAt', direction: 'desc' };
+const EMPTY_ASSET_FILTERS: AssetFilters = {};
 
 type RefForgeState = {
   config: AppConfig | null;
@@ -59,6 +63,9 @@ type RefForgeState = {
   favoriteOnly: boolean;
   trashOnly: boolean;
   duplicateOnly: boolean;
+  viewMode: 'grid' | 'list';
+  assetSort: AssetSort;
+  assetFilters: AssetFilters;
   gridThumbnailSize: number;
   showFileNames: boolean;
   loading: boolean;
@@ -97,6 +104,10 @@ type RefForgeState = {
   setTrashOnly: (trashOnly: boolean) => void;
   setDuplicateOnly: (duplicateOnly: boolean) => Promise<void>;
   setViewModeFilter: (viewMode: 'library' | 'favorites' | 'trash' | 'duplicates') => Promise<void>;
+  setAssetViewMode: (viewMode: 'grid' | 'list') => void;
+  setAssetSort: (sort: AssetSort) => void;
+  setAssetFilters: (filters: AssetFilters) => Promise<void>;
+  applyAssetFilterDraft: (viewMode: 'library' | 'favorites' | 'trash' | 'duplicates', filters: AssetFilters) => Promise<void>;
   clearFilters: () => void;
   setGridThumbnailSize: (size: number) => void;
   setShowFileNames: (showFileNames: boolean) => void;
@@ -123,6 +134,8 @@ type RefForgeState = {
   mergeDuplicateAssets: (input: { hash: string; targetAssetId: string; sourceAssetIds: string[] }) => Promise<void>;
   trashDuplicateAsset: (hash: string, assetId: string) => Promise<void>;
   createCollection: (name: string) => Promise<CollectionRecord | null>;
+  updateCollection: (input: { id: string; name?: string; description?: string; color?: string; coverAssetId?: string | null }) => Promise<void>;
+  deleteCollection: (id: string) => Promise<void>;
   addSelectionToCollection: (collectionId: string) => Promise<void>;
   createCollectionAndAddSelection: (name: string) => Promise<AssetBatchOperationResult | null>;
   addSelectionToCollectionBatch: (collectionId: string) => Promise<AssetBatchOperationResult | null>;
@@ -164,6 +177,9 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
   favoriteOnly: false,
   trashOnly: false,
   duplicateOnly: false,
+  viewMode: readViewModePreference(),
+  assetSort: readJsonPreference<AssetSort>('refForge:assetSort', DEFAULT_ASSET_SORT),
+  assetFilters: EMPTY_ASSET_FILTERS,
   gridThumbnailSize: readNumberPreference('refForge:gridThumbnailSize', 176),
   showFileNames: readBooleanPreference('refForge:showFileNames', true),
   loading: false,
@@ -246,6 +262,7 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
         favoriteOnly: false,
         trashOnly: false,
         duplicateOnly: false,
+        assetFilters: EMPTY_ASSET_FILTERS,
         assets: [],
         assetTotalCount: 0,
         assetHasMore: false
@@ -310,6 +327,8 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
       favoriteOnly: state.favoriteOnly,
       trashOnly: state.trashOnly,
       duplicateOnly: state.duplicateOnly,
+      sort: state.assetSort,
+      filters: state.assetFilters,
       limit: ASSET_PAGE_SIZE,
       offset
     };
@@ -525,6 +544,38 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
     await get().loadAssets();
   },
 
+  setAssetViewMode: (viewMode) => {
+    window.localStorage.setItem('refForge:viewMode', viewMode);
+    set({ viewMode });
+  },
+
+  setAssetSort: (assetSort) => {
+    window.localStorage.setItem('refForge:assetSort', JSON.stringify(assetSort));
+    set({ assetSort, selectedIds: [], activeAssetId: null, selectionAnchorId: null });
+    void get().loadAssets();
+  },
+
+  setAssetFilters: async (assetFilters) => {
+    set({ assetFilters, selectedIds: [], activeAssetId: null, selectionAnchorId: null });
+    await get().loadAssets();
+  },
+
+  applyAssetFilterDraft: async (viewMode, assetFilters) => {
+    set({
+      favoriteOnly: viewMode === 'favorites',
+      trashOnly: viewMode === 'trash',
+      duplicateOnly: viewMode === 'duplicates',
+      assetFilters,
+      smartFolderId: viewMode === 'library' || viewMode === 'favorites' ? get().smartFolderId : null,
+      tagId: viewMode === 'library' || viewMode === 'favorites' ? get().tagId : null,
+      collectionId: viewMode === 'library' || viewMode === 'favorites' ? get().collectionId : null,
+      selectedIds: [],
+      activeAssetId: null,
+      selectionAnchorId: null
+    });
+    await get().loadAssets();
+  },
+
   clearFilters: () => {
     set({
       search: '',
@@ -534,6 +585,7 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
       favoriteOnly: false,
       trashOnly: false,
       duplicateOnly: false,
+      assetFilters: EMPTY_ASSET_FILTERS,
       selectedIds: [],
       activeAssetId: null,
       selectionAnchorId: null
@@ -889,6 +941,27 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
     }
   },
 
+  updateCollection: async (input) => {
+    try {
+      await window.refForge.updateCollection(input);
+      await get().loadMetadata();
+      await get().loadAssets();
+    } catch (error) {
+      set({ error: toMessage(error) });
+    }
+  },
+
+  deleteCollection: async (id) => {
+    try {
+      await window.refForge.deleteCollection(id);
+      set({ collectionId: get().collectionId === id ? null : get().collectionId });
+      await get().loadMetadata();
+      await get().loadAssets();
+    } catch (error) {
+      set({ error: toMessage(error) });
+    }
+  },
+
   addSelectionToCollection: async (collectionId) => {
     const assetIds = get().selectedIds;
     if (assetIds.length === 0) {
@@ -1046,4 +1119,20 @@ function readBooleanPreference(key: string, fallback: boolean): boolean {
     return false;
   }
   return fallback;
+}
+
+function readViewModePreference(): 'grid' | 'list' {
+  return window.localStorage.getItem('refForge:viewMode') === 'list' ? 'list' : 'grid';
+}
+
+function readJsonPreference<T>(key: string, fallback: T): T {
+  const raw = window.localStorage.getItem(key);
+  if (!raw) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
 }

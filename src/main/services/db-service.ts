@@ -6,6 +6,7 @@ import type {
   AssetColor,
   AssetListResult,
   AssetListQuery,
+  AssetSort,
   AssetBatchCollectionInput,
   AssetBatchFavoriteInput,
   AssetBatchOperationResult,
@@ -81,6 +82,11 @@ type CollectionRow = {
   name: string;
   description: string;
   color: string;
+  cover_asset_id?: string | null;
+  effective_cover_asset_id?: string | null;
+  cover_thumbnail_path?: string | null;
+  cover_stored_file_path?: string | null;
+  cover_title?: string | null;
   asset_count?: number;
   created_at: string;
   updated_at: string;
@@ -238,7 +244,9 @@ export class LibraryDatabase {
       libraryId: this.manifest.libraryId
     };
 
-    if (query.trashOnly || query.isDeleted) {
+    const filters = query.filters ?? {};
+    const deletedOnly = Boolean(filters.deletedOnly || query.trashOnly || query.isDeleted);
+    if (deletedOnly) {
       where.push('a.is_deleted = 1');
     } else {
       where.push('a.is_deleted = 0');
@@ -288,8 +296,68 @@ export class LibraryDatabase {
       )`);
     }
 
-    if (query.favoriteOnly) {
+    if (query.favoriteOnly || filters.favoriteOnly) {
       where.push('a.is_favorite = 1');
+    }
+
+    appendListFilter(where, params, 'mediaType', 'a.media_type', filters.mediaTypes);
+    appendListFilter(where, params, 'extension', 'a.extension', filters.extensions);
+
+    if (typeof filters.minRating === 'number' && Number.isFinite(filters.minRating)) {
+      params.minRating = Math.max(0, Math.min(5, filters.minRating));
+      where.push('a.rating >= @minRating');
+    }
+
+    if (filters.includeTagIds && filters.includeTagIds.length > 0) {
+      uniqueStrings(filters.includeTagIds).forEach((tagId, index) => {
+        const key = `includeTagId${index}`;
+        params[key] = tagId;
+        where.push(`EXISTS (
+          SELECT 1
+          FROM asset_tags include_tag
+          WHERE include_tag.asset_id = a.id AND include_tag.tag_id = @${key}
+        )`);
+      });
+    }
+
+    if (filters.excludeTagIds && filters.excludeTagIds.length > 0) {
+      const tagKeys = uniqueStrings(filters.excludeTagIds).map((tagId, index) => {
+        const key = `excludeTagId${index}`;
+        params[key] = tagId;
+        return `@${key}`;
+      });
+      where.push(`NOT EXISTS (
+        SELECT 1
+        FROM asset_tags exclude_tag
+        WHERE exclude_tag.asset_id = a.id AND exclude_tag.tag_id IN (${tagKeys.join(', ')})
+      )`);
+    }
+
+    if (filters.aspect === 'landscape') {
+      where.push('a.width IS NOT NULL AND a.height IS NOT NULL AND a.width > a.height');
+    } else if (filters.aspect === 'portrait') {
+      where.push('a.width IS NOT NULL AND a.height IS NOT NULL AND a.width < a.height');
+    } else if (filters.aspect === 'square') {
+      where.push('a.width IS NOT NULL AND a.height IS NOT NULL AND a.width = a.height');
+    }
+
+    if (typeof filters.minWidth === 'number' && Number.isFinite(filters.minWidth) && filters.minWidth > 0) {
+      params.minWidth = Math.floor(filters.minWidth);
+      where.push('a.width >= @minWidth');
+    }
+    if (typeof filters.minHeight === 'number' && Number.isFinite(filters.minHeight) && filters.minHeight > 0) {
+      params.minHeight = Math.floor(filters.minHeight);
+      where.push('a.height >= @minHeight');
+    }
+    if (filters.hasMemo) {
+      where.push("TRIM(a.memo) <> ''");
+    }
+    if (filters.hasSourceUrl) {
+      where.push("TRIM(a.source_url) <> ''");
+    }
+    if (typeof filters.recentDays === 'number' && Number.isFinite(filters.recentDays) && filters.recentDays > 0) {
+      params.recentSince = new Date(Date.now() - Math.floor(filters.recentDays) * 24 * 60 * 60 * 1000).toISOString();
+      where.push('a.imported_at >= @recentSince');
     }
 
     if (query.smartFolderId) {
@@ -299,7 +367,7 @@ export class LibraryDatabase {
       }
     }
 
-    if (query.duplicateOnly) {
+    if (query.duplicateOnly || filters.duplicateOnly) {
       where.push(`a.hash IN (
         SELECT grouped.hash
         FROM assets grouped
@@ -327,7 +395,7 @@ export class LibraryDatabase {
     return {
       whereSql: where.join(' AND '),
       params,
-      orderSql: getAssetOrderSql(query.sort),
+      orderSql: getAssetOrderSql(query.sort, query.collectionId ?? null),
       limit,
       offset
     };
@@ -826,16 +894,63 @@ export class LibraryDatabase {
   listCollections(): CollectionRecord[] {
     const rows = this.db
       .prepare(
-        `SELECT c.*, COUNT(a.id) AS asset_count
+        `SELECT c.*,
+                COUNT(a.id) AS asset_count,
+                COALESCE(
+                  (
+                    SELECT explicit_cover.id
+                    FROM assets explicit_cover
+                    WHERE explicit_cover.id = c.cover_asset_id
+                      AND explicit_cover.is_deleted = 0
+                      AND explicit_cover.permanently_deleted_at IS NULL
+                    LIMIT 1
+                  ),
+                  (
+                    SELECT ca_cover.asset_id
+                    FROM collection_assets ca_cover
+                    JOIN assets cover_candidate
+                      ON cover_candidate.id = ca_cover.asset_id
+                     AND cover_candidate.is_deleted = 0
+                     AND cover_candidate.permanently_deleted_at IS NULL
+                    WHERE ca_cover.collection_id = c.id
+                    ORDER BY ca_cover.sort_order ASC, ca_cover.created_at ASC
+                    LIMIT 1
+                  )
+                ) AS effective_cover_asset_id,
+                cover.thumbnail_path AS cover_thumbnail_path,
+                cover.stored_file_path AS cover_stored_file_path,
+                cover.title AS cover_title
          FROM collections c
          LEFT JOIN collection_assets ca ON ca.collection_id = c.id
          LEFT JOIN assets a ON a.id = ca.asset_id AND a.is_deleted = 0 AND a.permanently_deleted_at IS NULL
+         LEFT JOIN assets cover
+           ON cover.id = COALESCE(
+             (
+               SELECT explicit_cover.id
+               FROM assets explicit_cover
+               WHERE explicit_cover.id = c.cover_asset_id
+                 AND explicit_cover.is_deleted = 0
+                 AND explicit_cover.permanently_deleted_at IS NULL
+               LIMIT 1
+             ),
+             (
+               SELECT ca_cover.asset_id
+               FROM collection_assets ca_cover
+               JOIN assets cover_candidate
+                 ON cover_candidate.id = ca_cover.asset_id
+                AND cover_candidate.is_deleted = 0
+                AND cover_candidate.permanently_deleted_at IS NULL
+               WHERE ca_cover.collection_id = c.id
+               ORDER BY ca_cover.sort_order ASC, ca_cover.created_at ASC
+               LIMIT 1
+             )
+           )
          WHERE c.library_id IS NULL OR c.library_id = ?
          GROUP BY c.id
          ORDER BY c.created_at DESC`
       )
       .all(this.manifest.libraryId) as CollectionRow[];
-    return rows.map(mapCollection);
+    return rows.map((row) => mapCollection(row, this.rootPath));
   }
 
   createCollection(name: string, description = '', color = '#f59e0b'): CollectionRecord {
@@ -848,10 +963,10 @@ export class LibraryDatabase {
       )
       .run(id, this.manifest.libraryId, name.trim(), description, color, now, now);
     const collection = this.db.prepare('SELECT * FROM collections WHERE id = ?').get(id) as CollectionRow;
-    return mapCollection(collection);
+    return mapCollection(collection, this.rootPath);
   }
 
-  updateCollection(input: { id: string; name?: string; description?: string; color?: string }): CollectionRecord {
+  updateCollection(input: { id: string; name?: string; description?: string; color?: string; coverAssetId?: string | null }): CollectionRecord {
     const updates: string[] = [];
     const params: Record<string, unknown> = {
       id: input.id,
@@ -870,6 +985,10 @@ export class LibraryDatabase {
       updates.push('color = @color');
       params.color = input.color;
     }
+    if (input.coverAssetId !== undefined) {
+      updates.push('cover_asset_id = @coverAssetId');
+      params.coverAssetId = input.coverAssetId;
+    }
     updates.push('updated_at = @updatedAt');
     this.db.prepare(`UPDATE collections SET ${updates.join(', ')} WHERE id = @id`).run(params);
     const collection = this.db.prepare('SELECT * FROM collections WHERE id = ?').get(input.id) as
@@ -878,7 +997,7 @@ export class LibraryDatabase {
     if (!collection) {
       throw new Error('Collection not found.');
     }
-    return mapCollection(collection);
+    return mapCollection(collection, this.rootPath);
   }
 
   addAssetsToCollection(collectionId: string, assetIds: string[]): CollectionRecord {
@@ -900,11 +1019,15 @@ export class LibraryDatabase {
     transaction();
 
     const collection = this.db.prepare('SELECT * FROM collections WHERE id = ?').get(collectionId) as CollectionRow;
-    return mapCollection(collection);
+    return mapCollection(collection, this.rootPath);
   }
 
   removeAssetFromCollection(collectionId: string, assetId: string): void {
     this.db.prepare('DELETE FROM collection_assets WHERE collection_id = ? AND asset_id = ?').run(collectionId, assetId);
+  }
+
+  deleteCollection(id: string): void {
+    this.db.prepare('DELETE FROM collections WHERE id = ? AND (library_id IS NULL OR library_id = ?)').run(id, this.manifest.libraryId);
   }
 
   listDuplicateGroups(query: DuplicateGroupQuery = {}): DuplicateGroup[] {
@@ -1543,7 +1666,7 @@ export class LibraryDatabase {
       updatedAt: row.updated_at,
       importedAt: row.imported_at,
       tags: tags.map(mapTag),
-      collections: collections.map(mapCollection),
+      collections: collections.map((collection) => mapCollection(collection, this.rootPath)),
       colors: colors.map(mapColor),
       storedFileUrl: relativeToFileUrl(this.rootPath, row.stored_file_path) ?? '',
       thumbnailUrl: relativeToFileUrl(this.rootPath, row.thumbnail_path),
@@ -1552,22 +1675,92 @@ export class LibraryDatabase {
   }
 }
 
-function getAssetOrderSql(sort: AssetListQuery['sort']): string {
-  switch (sort) {
-    case 'importedAsc':
-      return 'ORDER BY a.imported_at ASC, a.id ASC';
-    case 'titleAsc':
-      return 'ORDER BY LOWER(a.title) ASC, a.imported_at DESC';
-    case 'titleDesc':
-      return 'ORDER BY LOWER(a.title) DESC, a.imported_at DESC';
-    case 'ratingDesc':
-      return 'ORDER BY a.rating DESC, a.imported_at DESC';
-    case 'sizeDesc':
-      return 'ORDER BY a.size_bytes DESC, a.imported_at DESC';
-    case 'importedDesc':
+function getAssetOrderSql(sort: AssetListQuery['sort'], collectionId: string | null = null): string {
+  const normalized = normalizeAssetSort(sort);
+  if (collectionId && normalized.field === 'collectionOrder') {
+    return `ORDER BY (
+      SELECT ca_order.sort_order
+      FROM collection_assets ca_order
+      WHERE ca_order.asset_id = a.id
+        AND ca_order.collection_id = @collectionId
+      LIMIT 1
+    ) ${normalized.direction.toUpperCase()}, a.imported_at DESC, a.id DESC`;
+  }
+
+  const direction = normalized.direction.toUpperCase();
+  switch (normalized.field) {
+    case 'importedAt':
+      return `ORDER BY a.imported_at ${direction}, a.id ${direction}`;
+    case 'title':
+      return `ORDER BY LOWER(a.title) ${direction}, LOWER(a.original_file_name) ${direction}, a.imported_at DESC`;
+    case 'sizeBytes':
+      return `ORDER BY a.size_bytes ${direction}, a.imported_at DESC`;
+    case 'pixelCount':
+      return `ORDER BY COALESCE(a.width, 0) * COALESCE(a.height, 0) ${direction}, a.imported_at DESC`;
+    case 'rating':
+      return `ORDER BY a.rating ${direction}, a.imported_at DESC`;
+    case 'extension':
+      return `ORDER BY LOWER(a.extension) ${direction}, LOWER(a.title) ASC, a.imported_at DESC`;
+    case 'collectionOrder':
+      return 'ORDER BY a.imported_at DESC, a.id DESC';
     default:
       return 'ORDER BY a.imported_at DESC, a.id DESC';
   }
+}
+
+function normalizeAssetSort(sort: AssetListQuery['sort']): AssetSort {
+  if (typeof sort === 'object' && sort) {
+    const direction = sort.direction === 'asc' ? 'asc' : 'desc';
+    if (['importedAt', 'title', 'sizeBytes', 'pixelCount', 'rating', 'extension', 'collectionOrder'].includes(sort.field)) {
+      return { field: sort.field, direction };
+    }
+  }
+
+  switch (sort) {
+    case 'importedAsc':
+      return { field: 'importedAt', direction: 'asc' };
+    case 'titleAsc':
+      return { field: 'title', direction: 'asc' };
+    case 'titleDesc':
+      return { field: 'title', direction: 'desc' };
+    case 'ratingDesc':
+      return { field: 'rating', direction: 'desc' };
+    case 'ratingAsc':
+      return { field: 'rating', direction: 'asc' };
+    case 'sizeDesc':
+      return { field: 'sizeBytes', direction: 'desc' };
+    case 'sizeAsc':
+      return { field: 'sizeBytes', direction: 'asc' };
+    case 'extensionAsc':
+      return { field: 'extension', direction: 'asc' };
+    case 'pixelCountDesc':
+      return { field: 'pixelCount', direction: 'desc' };
+    case 'pixelCountAsc':
+      return { field: 'pixelCount', direction: 'asc' };
+    case 'importedDesc':
+    default:
+      return { field: 'importedAt', direction: 'desc' };
+  }
+}
+
+function appendListFilter(
+  where: string[],
+  params: Record<string, unknown>,
+  keyPrefix: string,
+  column: string,
+  values: string[] | undefined
+): void {
+  const normalizedValues = uniqueStrings((values ?? []).map((value) => value.trim().toLowerCase()).filter(Boolean));
+  if (normalizedValues.length === 0) {
+    return;
+  }
+
+  const keys = normalizedValues.map((value, index) => {
+    const key = `${keyPrefix}${index}`;
+    params[key] = value;
+    return `@${key}`;
+  });
+  where.push(`LOWER(${column}) IN (${keys.join(', ')})`);
 }
 
 function mergeAssetMemos(target: AssetRecord, sources: AssetRecord[]): string {
@@ -1602,12 +1795,16 @@ function mapTag(row: TagRow): TagRecord {
   };
 }
 
-function mapCollection(row: CollectionRow): CollectionRecord {
+function mapCollection(row: CollectionRow, rootPath?: string): CollectionRecord {
+  const coverPath = row.cover_thumbnail_path ?? row.cover_stored_file_path ?? null;
   return {
     id: row.id,
     name: row.name,
     description: row.description,
     color: row.color,
+    coverAssetId: row.cover_asset_id ?? null,
+    coverAssetThumbnailUrl: rootPath && coverPath ? relativeToFileUrl(rootPath, coverPath) : null,
+    coverAssetTitle: row.cover_title ?? null,
     assetCount: row.asset_count ?? 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at

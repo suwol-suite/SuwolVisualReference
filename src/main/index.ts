@@ -311,10 +311,13 @@ function registerIpcHandlers(): void {
   );
   ipcMain.handle(
     IPC_CHANNELS.collectionsUpdate,
-    (_event, input: { id: string; name?: string; description?: string; color?: string }) => {
+    (_event, input: { id: string; name?: string; description?: string; color?: string; coverAssetId?: string | null }) => {
       return libraryService.requireDb().updateCollection(input);
     }
   );
+  ipcMain.handle(IPC_CHANNELS.collectionsDelete, (_event, id: string) => {
+    libraryService.requireDb().deleteCollection(id);
+  });
   ipcMain.handle(IPC_CHANNELS.collectionsCreateAndAddAssets, (_event, input: CollectionCreateAndAddAssetsInput) => {
     const db = libraryService.requireDb();
     const collection = db.createCollection(input.name, input.description, input.color);
