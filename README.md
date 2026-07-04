@@ -28,7 +28,7 @@ Screenshots are planned after the first public ZIP release.
 - Linux x64: ZIP distribution.
 - macOS: not distributed yet.
 
-No installer and no automatic updater are included in v0.1.1.
+No installer and no automatic updater are included.
 
 ## Download
 
@@ -36,14 +36,14 @@ Download the latest ZIP from [GitHub Releases](https://github.com/suwol-suite/Su
 
 ### Windows ZIP
 
-1. Download `SuwolVisualReference-0.1.1-win-x64.zip`.
+1. Download `SuwolVisualReference-<version>-win-x64.zip`.
 2. Extract the ZIP.
 3. Run `Suwol Visual Reference.exe`.
-4. Windows SmartScreen may warn because the v0.1.1 build is not code-signed.
+4. Windows SmartScreen may warn because the build is not code-signed.
 
 ### Linux ZIP
 
-1. Download `SuwolVisualReference-0.1.1-linux-x64.zip`.
+1. Download `SuwolVisualReference-<version>-linux-x64.zip`.
 2. Extract the ZIP.
 3. If your desktop environment requires it, mark the executable as runnable:
 
@@ -55,18 +55,18 @@ Download the latest ZIP from [GitHub Releases](https://github.com/suwol-suite/Su
 
 ### Verify Checksums
 
-Download `SuwolVisualReference-0.1.1-checksums.txt` from the same release and compare the SHA-256 hash before running the app.
+Download `SuwolVisualReference-<version>-checksums.txt` from the same release and compare the SHA-256 hash before running the app.
 
 Windows PowerShell:
 
 ```powershell
-Get-FileHash .\SuwolVisualReference-0.1.1-win-x64.zip -Algorithm SHA256
+Get-FileHash .\SuwolVisualReference-<version>-win-x64.zip -Algorithm SHA256
 ```
 
 Linux:
 
 ```bash
-sha256sum SuwolVisualReference-0.1.1-linux-x64.zip
+sha256sum SuwolVisualReference-<version>-linux-x64.zip
 ```
 
 ## Development Environment
@@ -108,6 +108,7 @@ The renderer dev server normally runs at `http://localhost:5173/`, and Electron 
 npm.cmd run icons:generate
 npm.cmd run typecheck
 npm.cmd run lint
+npm.cmd run test:selection
 npm.cmd run i18n:check
 npm.cmd run license:check
 npm.cmd run smoke
@@ -118,6 +119,7 @@ npm.cmd run release:zip:win
 npm.cmd run release:checksums
 npm.cmd run verify:checksums
 npm.cmd run verify:release:zip
+npm.cmd run verify:packaged-app
 ```
 
 Additional local checks:
@@ -149,15 +151,15 @@ Checksums:
 npm.cmd run release:checksums
 ```
 
-Expected v0.1.1 release assets:
+Expected release assets:
 
-- `SuwolVisualReference-0.1.1-win-x64.zip`
-- `SuwolVisualReference-0.1.1-linux-x64.zip`
-- `SuwolVisualReference-0.1.1-checksums.txt`
+- `SuwolVisualReference-<version>-win-x64.zip`
+- `SuwolVisualReference-<version>-linux-x64.zip`
+- `SuwolVisualReference-<version>-checksums.txt`
 
 GitHub Actions builds Windows and Linux ZIP files on their matching OS runners when a `v*` tag is pushed. The workflow publishes a GitHub Release with ZIP files and SHA-256 checksums using the default `GITHUB_TOKEN`.
 
-The CI workflow runs on pushes and pull requests to `main`. It checks type safety, linting, i18n resources, third-party notices, smoke behavior, production build, and production dependency audit on Windows and Linux.
+The CI workflow runs on pushes and pull requests to `main`. It checks type safety, linting, selection logic, i18n resources, third-party notices, smoke behavior, production build, and production dependency audit on Windows and Linux.
 
 Release recovery through `workflow_dispatch` is documented in [docs/packaging-notes.md](docs/packaging-notes.md). The full release checklist is in [docs/release-process.md](docs/release-process.md).
 
@@ -182,6 +184,14 @@ See [docs/known-issues.md](docs/known-issues.md).
 ## Issues And Requests
 
 Use the GitHub issue templates for bugs and feature requests. Do not attach private libraries, copyrighted assets, personal source files, SQLite databases, `.env` files, tokens, certificates, or keys.
+
+Helpful bug report details:
+
+- App version from Settings or `Suwol Visual Reference.exe --version`.
+- Operating system and ZIP file name.
+- Library size, approximate asset count, and whether the library is local, synced, or external.
+- Exact error message and a screenshot when it is safe to share.
+- Steps to reproduce without uploading private assets.
 
 Manual release QA is tracked in [docs/manual-qa-checklist.md](docs/manual-qa-checklist.md).
 

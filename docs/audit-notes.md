@@ -25,7 +25,7 @@ npm.cmd audit
 
 No `npm audit fix --force` was run. npm recommends breaking upgrades such as `electron@43.0.0`, `vite@8.1.3`, and newer `electron-vite` lines. Those upgrades may affect Electron runtime behavior, native ABI rebuilds, and the electron-vite config surface.
 
-The current v0.1.1 release keeps the working Electron/Vite stack stable and documents the remaining dev-only audit items. Before a future dependency-refresh release, upgrade Electron and Vite/electron-vite together in a dedicated compatibility pass, then run:
+The current v0.1.2 release preparation keeps the working Electron/Vite stack stable and documents the remaining dev-only audit items. Before a future dependency-refresh release, upgrade Electron and Vite/electron-vite together in a dedicated compatibility pass, then run:
 
 ```powershell
 npm.cmd install
@@ -33,6 +33,7 @@ npm.cmd run rebuild:native
 npm.cmd run icons:generate
 npm.cmd run typecheck
 npm.cmd run lint
+npm.cmd run test:selection
 npm.cmd run i18n:check
 npm.cmd run license:check
 npm.cmd run build

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { BrowserWindow, app, dialog, ipcMain, net, protocol, shell } from 'electron';
@@ -96,34 +97,41 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(async () => {
-  const libraryPerfTestIndex = process.argv.indexOf('--library-perf-test');
-  if (libraryPerfTestIndex >= 0) {
-    await runHeadlessTask(() => runLibraryPerfTest(process.argv[libraryPerfTestIndex + 1] ?? process.cwd()));
-    return;
-  }
-
-  const uiImportTestIndex = process.argv.indexOf('--ui-import-test');
-  if (uiImportTestIndex >= 0) {
-    await runHeadlessTask(() => runUiImportTest(process.argv[uiImportTestIndex + 1]));
-    return;
-  }
-
-  if (process.argv.includes('--smoke-test')) {
-    await runHeadlessTask(runSmokeTest);
-    return;
-  }
-
-  registerAssetProtocol();
-  registerIpcHandlers();
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+if (!handleEarlyCliFlags()) {
+  app.whenReady().then(async () => {
+    const libraryPerfTestIndex = process.argv.indexOf('--library-perf-test');
+    if (libraryPerfTestIndex >= 0) {
+      await runHeadlessTask(() => runLibraryPerfTest(process.argv[libraryPerfTestIndex + 1] ?? process.cwd()));
+      return;
     }
+
+    const uiImportTestIndex = process.argv.indexOf('--ui-import-test');
+    if (uiImportTestIndex >= 0) {
+      await runHeadlessTask(() => runUiImportTest(process.argv[uiImportTestIndex + 1]));
+      return;
+    }
+
+    if (process.argv.includes('--smoke-test')) {
+      await runHeadlessTask(runSmokeTest);
+      return;
+    }
+
+    if (process.argv.includes('--smoke-main')) {
+      await runHeadlessTask(runMainSmokeCheck);
+      return;
+    }
+
+    registerAssetProtocol();
+    registerIpcHandlers();
+    createWindow();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
   });
-});
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -379,6 +387,57 @@ function assertWindow(): BrowserWindow {
 
 function getWindowIconPath(): string {
   return resolveResourcePath(process.platform === 'linux' ? 'build/icon.png' : 'build/icon.ico');
+}
+
+function handleEarlyCliFlags(): boolean {
+  if (process.argv.includes('--help')) {
+    console.log(
+      [
+        `${loadAppConfig().appName} ${loadAppConfig().appVersion}`,
+        '',
+        'Safe diagnostic flags:',
+        '  --version      Print the packaged app version and exit.',
+        '  --smoke-main   Verify main-process config and packaged resources without opening a window.',
+        '  --smoke-test   Run the full local library smoke test.'
+      ].join('\n')
+    );
+    process.exit(0);
+    return true;
+  }
+
+  if (process.argv.includes('--version')) {
+    console.log(loadAppConfig().appVersion);
+    process.exit(0);
+    return true;
+  }
+
+  return false;
+}
+
+async function runMainSmokeCheck(): Promise<void> {
+  const config = loadAppConfig();
+  if (!config.appName || !config.appVersion || !config.appLicense) {
+    throw new Error(`App config is missing required metadata: ${JSON.stringify(config)}`);
+  }
+
+  const iconPath = getWindowIconPath();
+  if (!fs.existsSync(iconPath) || fs.statSync(iconPath).size <= 0) {
+    throw new Error(`Window icon is missing or empty: ${iconPath}`);
+  }
+
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        appName: config.appName,
+        version: config.appVersion,
+        license: config.appLicense,
+        iconPath
+      },
+      null,
+      2
+    )
+  );
 }
 
 async function runHeadlessTask(task: () => Promise<void>): Promise<void> {

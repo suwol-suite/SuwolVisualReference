@@ -6,10 +6,12 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 
 - [ ] Download the Windows ZIP from GitHub Releases.
 - [ ] Extract the Windows ZIP and run `Suwol Visual Reference.exe`.
+- [ ] Run `Suwol Visual Reference.exe --version` and confirm the version.
 - [ ] Download the Linux ZIP from GitHub Releases.
 - [ ] Extract the Linux ZIP.
 - [ ] Add execute permission on Linux if needed.
 - [ ] Launch the Linux app.
+- [ ] Run the Linux executable with `--version` and confirm the version.
 - [ ] Confirm the app title is `Suwol Visual Reference`.
 - [ ] Confirm Windows SmartScreen behavior is understood for unsigned builds.
 
@@ -35,6 +37,7 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Load more assets with pagination.
 - [ ] Search by filename, tag, memo, extension, or URL.
 - [ ] Switch between library, favorites, trash, duplicates, tag, collection, and smart folder views.
+- [ ] Open the filter popover, use Apply and Clear, close it with ESC, and close it by clicking outside.
 
 ## Asset UX
 
@@ -42,8 +45,14 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Ctrl/Cmd-click to toggle selection.
 - [ ] Shift-click to select a range.
 - [ ] Drag-box select visible assets.
+- [ ] Press Ctrl/Cmd+A outside text inputs and confirm loaded assets are selected.
+- [ ] Press ESC and confirm selection clears.
+- [ ] Press Delete outside text inputs and confirm selected assets move to trash after confirmation.
+- [ ] Confirm text selection works in inputs and textareas, but not across the app chrome.
 - [ ] Open the large image viewer.
-- [ ] Zoom, pan, reset, previous, and next in the viewer.
+- [ ] Open the large image viewer with Enter/Space.
+- [ ] Zoom, pan, reset, previous, next, and ESC close in the viewer.
+- [ ] Confirm failed preview loading shows a placeholder.
 
 ## Metadata
 
@@ -59,6 +68,7 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Move assets to trash.
 - [ ] Restore assets from trash.
 - [ ] Permanently delete trash assets and confirm only library-internal copies are removed.
+- [ ] Review permanent delete partial failure details if any file cannot be removed.
 - [ ] Review duplicate groups.
 - [ ] Merge duplicate metadata.
 - [ ] Ignore or resolve duplicate groups.

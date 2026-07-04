@@ -45,6 +45,7 @@ jobs:
           npm.cmd run icons:generate
           npm.cmd run typecheck
           npm.cmd run lint
+          npm.cmd run test:selection
           npm.cmd run i18n:check
           npm.cmd run license:check
           npm.cmd run smoke
@@ -85,6 +86,7 @@ jobs:
           npm run icons:generate
           npm run typecheck
           npm run lint
+          npm run test:selection
           npm run i18n:check
           npm run license:check
           xvfb-run -a npm run smoke:ci:linux

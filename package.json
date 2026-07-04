@@ -1,6 +1,6 @@
 {
   "name": "suwol-visual-reference",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Local visual reference manager for game developers.",
   "author": "SuwolSoft",
   "private": true,
@@ -39,7 +39,9 @@
     "release:checksums": "node scripts/checksums.mjs",
     "verify:checksums": "node scripts/verify-checksums.mjs",
     "verify:release:zip": "node scripts/verify-release-zip.mjs",
-    "release:verify": "npm run release:checksums && npm run verify:checksums && npm run verify:release:zip"
+    "verify:packaged-app": "node scripts/verify-packaged-app.mjs",
+    "test:selection": "node scripts/test-selection-utils.mjs",
+    "release:verify": "npm run release:checksums && npm run verify:checksums && npm run verify:release:zip && npm run verify:packaged-app"
   },
   "dependencies": {
     "better-sqlite3": "^12.2.0",

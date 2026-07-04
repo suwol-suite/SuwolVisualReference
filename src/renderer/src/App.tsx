@@ -52,6 +52,14 @@ import { SUPPORTED_LANGUAGES } from '@shared/i18n/languages';
 import type { LanguagePreference } from '@shared/i18n/types';
 import brandIconUrl from '@brand/icon.svg';
 import { selectActiveAsset, useRefForgeStore } from './store';
+import {
+  getClientSelectionRect,
+  getDragSelectedIds,
+  rectsIntersect,
+  uniqueStrings,
+  type ClientRectLike,
+  type DragSelectionState
+} from './selection-utils';
 import styles from './App.module.css';
 
 export function App(): JSX.Element {
@@ -1009,7 +1017,12 @@ function AssetGrid(): JSX.Element {
           return element ? rectsIntersect(selectionRect, element.getBoundingClientRect()) : false;
         })
         .map((asset) => asset.id);
-      const nextSelectedIds = nextDrag.additive ? uniqueStrings([...initialSelectedIds, ...hitIds]) : hitIds;
+      const nextSelectedIds = getDragSelectedIds({
+        orderedAssetIds: assets.map((asset) => asset.id),
+        initialSelectedIds,
+        hitAssetIds: hitIds,
+        additive: nextDrag.additive
+      });
       selectAssets(nextSelectedIds, nextSelectedIds[0] ?? null, { preserveAnchor: nextDrag.additive });
     };
 
@@ -2834,24 +2847,6 @@ function fileBaseName(filePath: string): string {
   return filePath.split(/[\\/]/u).pop() ?? filePath;
 }
 
-type DragSelectionState = {
-  startX: number;
-  startY: number;
-  currentX: number;
-  currentY: number;
-  initialSelectedIds: string[];
-  additive: boolean;
-};
-
-type ClientRectLike = {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-  width: number;
-  height: number;
-};
-
 function isEditableElement(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false;
@@ -2873,21 +2868,6 @@ function isAssetTileElement(target: EventTarget | null): boolean {
   return Boolean(target.closest('[data-asset-tile="true"]'));
 }
 
-function getClientSelectionRect(selection: DragSelectionState): ClientRectLike {
-  const left = Math.min(selection.startX, selection.currentX);
-  const top = Math.min(selection.startY, selection.currentY);
-  const right = Math.max(selection.startX, selection.currentX);
-  const bottom = Math.max(selection.startY, selection.currentY);
-  return {
-    left,
-    top,
-    right,
-    bottom,
-    width: right - left,
-    height: bottom - top
-  };
-}
-
 function getDragSelectionStyle(rect: ClientRectLike): CSSProperties {
   return {
     left: `${rect.left}px`,
@@ -2897,20 +2877,14 @@ function getDragSelectionStyle(rect: ClientRectLike): CSSProperties {
   };
 }
 
-function rectsIntersect(left: ClientRectLike | DOMRect, right: ClientRectLike | DOMRect): boolean {
-  return left.left < right.right && left.right > right.left && left.top < right.bottom && left.bottom > right.top;
-}
-
 function getPopoverPosition(rect: DOMRect, width: number, height: number): { top: number; left: number } {
   const margin = 12;
+  const maxTop = Math.max(margin, window.innerHeight - height - margin);
+  const maxLeft = Math.max(margin, window.innerWidth - width - margin);
   return {
-    top: Math.min(rect.bottom + 8, window.innerHeight - height - margin),
-    left: Math.min(Math.max(margin, rect.left), window.innerWidth - width - margin)
+    top: Math.min(Math.max(margin, rect.bottom + 8), maxTop),
+    left: Math.min(Math.max(margin, rect.left), maxLeft)
   };
-}
-
-function uniqueStrings(values: string[]): string[] {
-  return [...new Set(values)];
 }
 
 function clampNumber(value: number, min: number, max: number): number {

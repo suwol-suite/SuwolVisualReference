@@ -2,7 +2,7 @@
 
 ## Windows SmartScreen
 
-The v0.1.1 Windows ZIP is not code-signed. Windows SmartScreen may warn before the app runs.
+The Windows ZIP is not code-signed. Windows SmartScreen may warn before the app runs.
 
 ## Code Signing
 
@@ -10,7 +10,7 @@ No Windows signing certificate is configured yet. Signed release builds are plan
 
 ## macOS
 
-macOS builds are not distributed in v0.1.1.
+macOS builds are not distributed.
 
 ## Linux ZIP Distribution
 
@@ -38,7 +38,11 @@ Large libraries load assets in 500-item pages. This keeps the UI responsive, but
 
 ## Automatic Updates
 
-Automatic updates are not included in v0.1.1. Download new ZIP files from GitHub Releases.
+Automatic updates are not included. Download new ZIP files from GitHub Releases.
+
+## Diagnostics And Logs
+
+Settings shows the app name, version, license, and current library path. The app does not currently write a dedicated application log file. When reporting a bug, include the app version, OS, ZIP filename, library size or asset count, exact error message, and safe screenshots. Do not upload private assets, copyrighted files, SQLite databases, tokens, certificates, or keys.
 
 ## User Asset Rights
 

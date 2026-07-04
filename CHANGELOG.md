@@ -2,17 +2,26 @@
 
 ## Unreleased
 
+## 0.1.2 - 2026-07-04
+
 ### Added
 
 - Windows and Linux CI workflow for pushes, pull requests, and manual runs.
 - Release ZIP structure verification script.
 - Release checksum verification script.
+- Packaged app verification for Windows and Linux unpacked builds.
+- Safe `--version`, `--help`, and `--smoke-main` main-process diagnostics.
+- Selection logic regression checks.
 - Issue templates and pull request template.
 - Release process and manual QA checklist documentation.
 
 ### Changed
 
 - Release workflow now verifies downloaded ZIP artifacts before publishing GitHub Releases.
+- Release build jobs now verify packaged apps before uploading artifacts.
+- Checksum and ZIP verification messages now identify the failing artifact or checksum entry more clearly.
+- Desktop text selection is limited to inputs, textareas, selects, and contenteditable fields.
+- Filter popover positioning and button layout are more stable on narrow windows and localized text.
 - README and known issues include stronger checksum, issue reporting, and release QA guidance.
 
 ## 0.1.1 - Release workflow repair

@@ -17,7 +17,7 @@ const expectedFiles = [
 ];
 
 if (!fs.existsSync(checksumPath)) {
-  fail(`Checksum file does not exist: ${path.relative(repoRoot, checksumPath)}`);
+  fail(`checksum file does not exist: ${relativePath(checksumPath)}`);
 }
 
 const entries = fs
@@ -28,19 +28,19 @@ const entries = fs
   .map((line) => {
     const match = line.match(/^([a-fA-F0-9]{64})\s+(.+\.zip)$/u);
     if (!match) {
-      fail(`Invalid checksum line: ${line}`);
+      fail(`invalid checksum line in ${relativePath(checksumPath)}: ${line}`);
     }
     return { hash: match[1].toLowerCase(), fileName: match[2] };
   });
 
 if (entries.length === 0) {
-  fail(`No ZIP entries found in ${path.relative(repoRoot, checksumPath)}`);
+  fail(`no ZIP entries found in ${relativePath(checksumPath)}`);
 }
 
 if (requireAll) {
   for (const fileName of expectedFiles) {
     if (!entries.some((entry) => entry.fileName === fileName)) {
-      fail(`Missing required checksum entry: ${fileName}`);
+      fail(`missing required checksum entry: ${fileName}`);
     }
   }
 }
@@ -48,24 +48,32 @@ if (requireAll) {
 const seen = new Set();
 for (const entry of entries) {
   if (seen.has(entry.fileName)) {
-    fail(`Duplicate checksum entry: ${entry.fileName}`);
+    fail(`duplicate checksum entry: ${entry.fileName}`);
   }
   seen.add(entry.fileName);
 
   const filePath = path.join(releaseDir, entry.fileName);
   if (!fs.existsSync(filePath)) {
-    fail(`Checksum entry points to a missing ZIP: ${entry.fileName}`);
+    fail(`checksum entry points to a missing ZIP: ${entry.fileName}`);
   }
 
   const actualHash = crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
   if (actualHash !== entry.hash) {
-    fail(`Checksum mismatch for ${entry.fileName}: expected ${entry.hash}, got ${actualHash}`);
+    fail(`hash mismatch: ${entry.fileName} expected ${entry.hash}, got ${actualHash}`);
   }
 }
 
-console.log(`Verified ${entries.length} checksum entr${entries.length === 1 ? 'y' : 'ies'} in ${path.relative(repoRoot, checksumPath)}`);
+console.log(
+  `[verify-checksums] verified ${entries.length} checksum entr${entries.length === 1 ? 'y' : 'ies'} in ${relativePath(
+    checksumPath
+  )}`
+);
+
+function relativePath(filePath) {
+  return path.relative(repoRoot, filePath).replace(/\\/gu, '/') || filePath;
+}
 
 function fail(message) {
-  console.error(message);
+  console.error(`[verify-checksums] ${message}`);
   process.exit(1);
 }

@@ -27,6 +27,7 @@ Do not create a release tag until the package version, changelog, release notes,
 npm.cmd run icons:generate
 npm.cmd run typecheck
 npm.cmd run lint
+npm.cmd run test:selection
 npm.cmd run i18n:check
 npm.cmd run license:check
 npm.cmd run smoke
@@ -37,6 +38,7 @@ npm.cmd run release:zip:win
 npm.cmd run release:checksums
 npm.cmd run verify:checksums
 npm.cmd run verify:release:zip
+npm.cmd run verify:packaged-app
 npm.cmd run release:verify
 ```
 
@@ -58,10 +60,11 @@ Do not delete or recreate a local or remote release tag without explicit user ap
 1. Windows runner builds the Windows ZIP.
 2. Linux runner builds the Linux ZIP.
 3. Release job downloads both artifacts.
-4. Release job creates `SuwolVisualReference-<version>-checksums.txt`.
-5. Release job verifies checksums.
-6. Release job verifies ZIP structure and forbidden-path rules.
-7. Release job publishes the GitHub Release.
+4. OS build jobs verify unpacked packaged apps before upload.
+5. Release job creates `SuwolVisualReference-<version>-checksums.txt`.
+6. Release job verifies checksums.
+7. Release job verifies ZIP structure and forbidden-path rules.
+8. Release job publishes the GitHub Release.
 
 ## Failure Recovery
 

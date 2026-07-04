@@ -23,6 +23,12 @@ import type {
   TagRecord
 } from '@shared/types';
 import i18n, { changeLanguagePreference, getActiveLanguage, getStoredLanguagePreference } from './i18n';
+import {
+  filterLoadedSelection,
+  getNextAssetSelection,
+  getSelectAllSelection,
+  uniqueStrings
+} from './selection-utils';
 
 const ASSET_PAGE_SIZE = 500;
 
@@ -351,36 +357,26 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
   },
 
   selectAsset: (assetId, mode = 'replace') => {
-    const { assets, selectedIds, selectionAnchorId } = get();
-    if (mode === 'range') {
-      const anchorId = selectionAnchorId ?? get().activeAssetId ?? selectedIds[0] ?? assetId;
-      const anchorIndex = assets.findIndex((asset) => asset.id === anchorId);
-      const targetIndex = assets.findIndex((asset) => asset.id === assetId);
-      if (anchorIndex >= 0 && targetIndex >= 0) {
-        const start = Math.min(anchorIndex, targetIndex);
-        const end = Math.max(anchorIndex, targetIndex);
-        const rangeIds = assets.slice(start, end + 1).map((asset) => asset.id);
-        set({ selectedIds: rangeIds, activeAssetId: assetId, selectionAnchorId: anchorId });
-        return;
-      }
-    }
-
-    if (mode === 'toggle') {
-      const isSelected = selectedIds.includes(assetId);
-      set({
-        selectedIds: isSelected ? selectedIds.filter((id) => id !== assetId) : [...selectedIds, assetId],
-        activeAssetId: assetId,
-        selectionAnchorId: assetId
-      });
-      return;
-    }
-
-    set({ selectedIds: [assetId], activeAssetId: assetId, selectionAnchorId: assetId });
+    const { assets, selectedIds, activeAssetId, selectionAnchorId } = get();
+    set(
+      getNextAssetSelection(
+        {
+          orderedAssetIds: assets.map((asset) => asset.id),
+          selectedIds,
+          activeAssetId,
+          selectionAnchorId
+        },
+        assetId,
+        mode
+      )
+    );
   },
 
   selectAssets: (assetIds, activeAssetId, options) => {
-    const loadedIds = new Set(get().assets.map((asset) => asset.id));
-    const selectedIds = uniqueStrings(assetIds).filter((assetId) => loadedIds.has(assetId));
+    const selectedIds = filterLoadedSelection(
+      assetIds,
+      get().assets.map((asset) => asset.id)
+    );
     const nextActiveAssetId = activeAssetId === undefined ? selectedIds[0] ?? null : activeAssetId;
     set({
       selectedIds,
@@ -390,12 +386,7 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
   },
 
   selectAllLoadedAssets: () => {
-    const selectedIds = get().assets.map((asset) => asset.id);
-    set({
-      selectedIds,
-      activeAssetId: selectedIds[0] ?? null,
-      selectionAnchorId: selectedIds[0] ?? null
-    });
+    set(getSelectAllSelection(get().assets.map((asset) => asset.id)));
   },
 
   clearSelection: () => set({ selectedIds: [], activeAssetId: null, selectionAnchorId: null }),
@@ -1032,10 +1023,6 @@ function toMessage(error: unknown): string {
 
 function addUnique(values: string[], value: string): string[] {
   return values.includes(value) ? values : [...values, value];
-}
-
-function uniqueStrings(values: string[]): string[] {
-  return [...new Set(values)];
 }
 
 function getTargetAssetIds(state: RefForgeState): string[] {

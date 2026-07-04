@@ -47,12 +47,16 @@ jobs:
           npm.cmd run icons:generate
           npm.cmd run typecheck
           npm.cmd run lint
+          npm.cmd run test:selection
           npm.cmd run i18n:check
           npm.cmd run license:check
           npm.cmd run smoke
 
       - name: Build release ZIP
         run: npm.cmd run release:zip:win
+
+      - name: Verify packaged app
+        run: npm.cmd run verify:packaged-app -- --platform=win
 
       - name: List release files
         run: Get-ChildItem -Path release -Recurse | Select-Object FullName, Length
@@ -98,12 +102,16 @@ jobs:
           npm run icons:generate
           npm run typecheck
           npm run lint
+          npm run test:selection
           npm run i18n:check
           npm run license:check
           xvfb-run -a npm run smoke:ci:linux
 
       - name: Build release ZIP
         run: npm run release:zip:linux
+
+      - name: Verify packaged app
+        run: npm run verify:packaged-app -- --platform=linux
 
       - name: List release files
         run: find release -maxdepth 2 -type f -print

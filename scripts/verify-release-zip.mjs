@@ -36,9 +36,11 @@ for (const artifact of expectedArtifacts) {
   const zipPath = path.join(releaseDir, artifact.fileName);
   if (!fs.existsSync(zipPath)) {
     if (artifact.required) {
-      fail(`Missing required release ZIP: ${path.relative(repoRoot, zipPath)}`);
+      fail(`missing required release ZIP: ${relativePath(zipPath)}`);
     }
-    console.warn(`Skipping missing optional ${artifact.platform} ZIP: ${artifact.fileName}`);
+    console.warn(
+      `[verify-release-zip] skipping missing optional ${artifact.platform} ZIP: ${artifact.fileName} (use --require-all to require it)`
+    );
     continue;
   }
 
@@ -47,15 +49,15 @@ for (const artifact of expectedArtifacts) {
 }
 
 if (verifiedCount === 0) {
-  fail(`No release ZIP files were verified in ${path.relative(repoRoot, releaseDir)}`);
+  fail(`no release ZIP files were verified in ${relativePath(releaseDir)}`);
 }
 
-console.log(`Verified ${verifiedCount} release ZIP artifact${verifiedCount === 1 ? '' : 's'}.`);
+console.log(`[verify-release-zip] verified ${verifiedCount} release ZIP artifact${verifiedCount === 1 ? '' : 's'}.`);
 
 function verifyArtifact(zipPath, artifact) {
   const stat = fs.statSync(zipPath);
   if (stat.size <= 0) {
-    fail(`Release ZIP is empty: ${path.relative(repoRoot, zipPath)}`);
+    fail(`release ZIP is empty: ${relativePath(zipPath)}`);
   }
 
   const entries = readZipEntries(zipPath);
@@ -70,17 +72,17 @@ function verifyArtifact(zipPath, artifact) {
 
   const forbidden = entryNames.filter((entryName) => isForbiddenEntry(entryName));
   if (forbidden.length > 0) {
-    fail(`Forbidden paths found in ${artifact.fileName}:\n${forbidden.slice(0, 20).join('\n')}`);
+    fail(`forbidden file found in ${artifact.fileName}: ${forbidden.slice(0, 20).join(', ')}`);
   }
 
   verifyAsarContents(zipPath, entries, artifact.fileName);
-  console.log(`Verified ${artifact.fileName}`);
+  console.log(`[verify-release-zip] verified ${artifact.fileName}`);
 }
 
 function verifyAsarContents(zipPath, entries, fileName) {
   const appAsar = entries.find((entry) => normalizeZipName(entry.name) === 'resources/app.asar');
   if (!appAsar) {
-    fail(`Missing resources/app.asar in ${fileName}`);
+    fail(`missing resources/app.asar in ${fileName}`);
   }
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'suwol-release-zip-'));
@@ -89,8 +91,16 @@ function verifyAsarContents(zipPath, entries, fileName) {
     fs.writeFileSync(tempAsar, extractZipEntry(zipPath, appAsar));
     const asarEntries = asar.listPackage(tempAsar).map((entry) => normalizeAsarName(entry));
     const asarSet = new Set(asarEntries);
+    requireEntry(asarSet, 'package.json', `package metadata in ${fileName}`);
     requireEntry(asarSet, 'LICENSE', 'Apache-2.0 license in app.asar');
     requireEntry(asarSet, 'THIRD_PARTY_NOTICES.md', 'third-party notices in app.asar');
+    const metadata = JSON.parse(asar.extractFile(tempAsar, 'package.json').toString('utf8'));
+    if (metadata.name !== packageJson.name) {
+      fail(`package name mismatch in ${fileName}: expected ${packageJson.name}, got ${metadata.name ?? '<missing>'}`);
+    }
+    if (metadata.version !== version) {
+      fail(`package version mismatch in ${fileName}: expected ${version}, got ${metadata.version ?? '<missing>'}`);
+    }
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
@@ -106,7 +116,7 @@ function readZipEntries(zipPath) {
 
   for (let index = 0; index < totalEntries; index += 1) {
     if (buffer.readUInt32LE(offset) !== 0x02014b50) {
-      fail(`Invalid ZIP central directory signature in ${path.relative(repoRoot, zipPath)}`);
+      fail(`invalid ZIP central directory signature in ${relativePath(zipPath)}`);
     }
 
     const compressionMethod = buffer.readUInt16LE(offset + 10);
@@ -130,7 +140,7 @@ function extractZipEntry(zipPath, entry) {
   const buffer = fs.readFileSync(zipPath);
   const offset = entry.localHeaderOffset;
   if (buffer.readUInt32LE(offset) !== 0x04034b50) {
-    fail(`Invalid local ZIP header for ${entry.name}`);
+    fail(`invalid local ZIP header for ${entry.name}`);
   }
 
   const fileNameLength = buffer.readUInt16LE(offset + 26);
@@ -144,12 +154,12 @@ function extractZipEntry(zipPath, entry) {
   if (entry.compressionMethod === 8) {
     const inflated = zlib.inflateRawSync(compressed);
     if (inflated.length !== entry.uncompressedSize) {
-      fail(`Unexpected uncompressed size for ${entry.name}`);
+      fail(`unexpected uncompressed size for ${entry.name}`);
     }
     return inflated;
   }
 
-  fail(`Unsupported ZIP compression method ${entry.compressionMethod} for ${entry.name}`);
+  fail(`unsupported ZIP compression method ${entry.compressionMethod} for ${entry.name}`);
 }
 
 function findEndOfCentralDirectory(buffer) {
@@ -160,18 +170,18 @@ function findEndOfCentralDirectory(buffer) {
       return offset;
     }
   }
-  fail('Could not find ZIP end of central directory record.');
+  fail('could not find ZIP end of central directory record.');
 }
 
 function requireEntry(entrySet, name, label) {
   if (!entrySet.has(normalizeZipName(name))) {
-    fail(`Missing ${label}: ${name}`);
+    fail(`missing ${label}: ${name}`);
   }
 }
 
 function requireAny(entrySet, names, label) {
   if (!names.some((name) => entrySet.has(normalizeZipName(name)))) {
-    fail(`Missing ${label}. Tried: ${names.join(', ')}`);
+    fail(`missing ${label}. Tried: ${names.join(', ')}`);
   }
 }
 
@@ -222,7 +232,11 @@ function isForbiddenEntry(entryName) {
   return false;
 }
 
+function relativePath(filePath) {
+  return path.relative(repoRoot, filePath).replace(/\\/gu, '/') || filePath;
+}
+
 function fail(message) {
-  console.error(message);
+  console.error(`[verify-release-zip] ${message}`);
   process.exit(1);
 }

@@ -1,14 +1,14 @@
 # Packaging Notes
 
-Suwol Visual Reference v0.1.1 is distributed as ZIP archives for Windows x64 and Linux x64. Installers, automatic updates, code signing, and macOS artifacts are not part of the first public release.
+Suwol Visual Reference is distributed as ZIP archives for Windows x64 and Linux x64. Installers, automatic updates, code signing, and macOS artifacts are not part of the current release line.
 
 ## Artifact Names
 
 Expected release assets:
 
-- `SuwolVisualReference-0.1.1-win-x64.zip`
-- `SuwolVisualReference-0.1.1-linux-x64.zip`
-- `SuwolVisualReference-0.1.1-checksums.txt`
+- `SuwolVisualReference-<version>-win-x64.zip`
+- `SuwolVisualReference-<version>-linux-x64.zip`
+- `SuwolVisualReference-<version>-checksums.txt`
 
 The user-facing app name remains `Suwol Visual Reference`.
 
@@ -72,6 +72,7 @@ electron-builder includes `out/**`, `config/**`, `migrations/**`, `assets/brand/
 npm.cmd run icons:generate
 npm.cmd run typecheck
 npm.cmd run lint
+npm.cmd run test:selection
 npm.cmd run i18n:check
 npm.cmd run license:check
 npm.cmd run smoke
@@ -82,10 +83,11 @@ npm.cmd run release:zip:win
 npm.cmd run release:checksums
 npm.cmd run verify:checksums
 npm.cmd run verify:release:zip
+npm.cmd run verify:packaged-app
 npm.cmd run release:verify
 ```
 
-`pack:win` creates `release/win-unpacked` for local packaging QA. `release:zip:win` creates the Windows ZIP release asset.
+`pack:win` creates `release/win-unpacked` for local packaging QA. `release:zip:win` creates the Windows ZIP release asset. `verify:packaged-app` checks the unpacked executable, `resources/app.asar`, packaged icons, license/notices, package metadata, forbidden private paths, and the safe `--version` startup path for the current OS.
 
 ## Linux Commands
 
@@ -97,11 +99,13 @@ npm run rebuild:native
 npm run icons:generate
 npm run typecheck
 npm run lint
+npm run test:selection
 npm run i18n:check
 npm run license:check
 npm run build
 xvfb-run -a ./node_modules/.bin/electron --no-sandbox out/main/index.js --smoke-test
 npm run release:zip:linux
+npm run verify:packaged-app -- --platform=linux
 ```
 
 ## Checksums
@@ -116,7 +120,9 @@ npm.cmd run release:checksums
 
 `scripts/verify-release-zip.mjs` checks release ZIP structure, required executables, `resources/app.asar`, packaged icon resources, license/notices inside `app.asar`, and forbidden private/test paths.
 
-The GitHub Actions release job downloads both OS artifacts, runs the same checksum and ZIP verification scripts against `release-assets/`, and uploads the ZIP files plus checksum file to GitHub Releases.
+`scripts/verify-packaged-app.mjs` checks unpacked packaged apps after `electron-builder` creates `release/win-unpacked` or `release/linux-unpacked`. It runs the packaged executable with `--version` only on the matching OS.
+
+The GitHub Actions release workflow verifies each OS package before upload. The publish job then downloads both OS artifacts, runs checksum and ZIP verification scripts against `release-assets/`, and uploads the ZIP files plus checksum file to GitHub Releases.
 
 The normal release trigger is a `v*` tag push. If a tag-triggered run fails after the tag already exists, the same workflow can be run manually with `workflow_dispatch` and the existing tag name, such as `v0.1.1`, without deleting or recreating the tag.
 
