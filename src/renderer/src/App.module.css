@@ -533,18 +533,34 @@
   gap: 4px;
 }
 
+.assetListToolbar {
+  position: sticky;
+  top: -18px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 6px;
+  background: #0e1016;
+}
+
+.assetListToolbar span {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
 .assetListHeader,
 .assetListRow,
 .assetListRowSelected {
   display: grid;
-  grid-template-columns: 58px minmax(190px, 2fr) 78px 92px 112px 70px 72px 90px minmax(140px, 1.2fr) 84px 132px minmax(160px, 1.3fr);
   align-items: center;
   gap: 8px;
 }
 
 .assetListHeader {
   position: sticky;
-  top: -18px;
+  top: 24px;
   z-index: 5;
   min-height: 38px;
   padding: 0 10px;
@@ -555,6 +571,15 @@
   font-size: 12px;
 }
 
+.assetListHeaderCell {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding-right: 8px;
+}
+
 .assetListHeader button {
   min-width: 0;
   padding: 0;
@@ -563,6 +588,22 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.columnResizeHandle {
+  position: absolute;
+  top: 7px;
+  right: -6px;
+  width: 10px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: col-resize;
+}
+
+.columnResizeHandle:hover {
+  background: #78dcca;
 }
 
 .assetListHeader span,
@@ -603,6 +644,46 @@
 
 .assetListRowDeleted {
   opacity: 0.72;
+}
+
+.listReorderCell {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dragHandle {
+  width: 24px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #333746;
+  border-radius: 7px;
+  background: #20232c;
+  color: #9fe6d7;
+  cursor: grab;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.listReorderCell button {
+  width: 20px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #333746;
+  border-radius: 6px;
+  background: #20232c;
+  color: #dbe2ec;
+  cursor: pointer;
+}
+
+.listReorderCell button:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .listThumb {
@@ -1589,6 +1670,110 @@
   background: #20232c;
   color: #fca5a5;
   cursor: pointer;
+}
+
+.columnSettingsRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 90px 34px 34px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid #2f3542;
+  border-radius: 8px;
+  background: #101217;
+}
+
+.columnSettingsRow input[type='number'] {
+  height: 34px;
+  min-width: 0;
+  border: 1px solid #333746;
+  border-radius: 8px;
+  background: #151821;
+  color: #f0f1f6;
+  padding: 0 9px;
+}
+
+.columnSettingsRow button,
+.conditionRow button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #333746;
+  border-radius: 8px;
+  background: #20232c;
+  color: #dbe2ec;
+  cursor: pointer;
+}
+
+.smartFolderManagerLayout {
+  display: grid;
+  grid-template-columns: minmax(190px, 260px) minmax(0, 1fr);
+  gap: 14px;
+  min-height: 480px;
+}
+
+.smartFolderList {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #2f3542;
+  border-radius: 8px;
+  background: #101217;
+  overflow: auto;
+}
+
+.smartFolderEditor {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.smartFolderEditor label {
+  display: grid;
+  gap: 5px;
+  color: #cbd0dc;
+  font-size: 12px;
+}
+
+.smartFolderEditor input,
+.smartFolderEditor select,
+.conditionRow input,
+.conditionRow select {
+  min-width: 0;
+  height: 36px;
+  border: 1px solid #333746;
+  border-radius: 8px;
+  background: #151821;
+  color: #f0f1f6;
+  padding: 0 9px;
+}
+
+.conditionList {
+  display: grid;
+  gap: 8px;
+}
+
+.conditionRow {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.9fr) minmax(110px, 0.7fr) minmax(160px, 1fr) 34px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid #2f3542;
+  border-radius: 8px;
+  background: #101217;
+}
+
+.inlineError {
+  padding: 8px 10px;
+  border: 1px solid #7f1d1d;
+  border-radius: 8px;
+  background: #2a1216;
+  color: #fca5a5;
+  font-size: 12px;
 }
 
 .collectionManagerRow {

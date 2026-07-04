@@ -37,6 +37,7 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Load more assets with pagination.
 - [ ] Search by filename, tag, memo, extension, or URL.
 - [ ] Switch between grid view and list view.
+- [ ] Open list column settings, hide/show columns, move a column, resize a column, restore defaults, restart, and confirm settings persist.
 - [ ] Sort by imported date, name, file size, resolution, rating, and extension.
 - [ ] Use advanced filters for extension, rating, included/excluded tag, aspect, dimensions, memo, source URL, recency, favorites, duplicates, and trash/deleted state.
 - [ ] Switch between library, favorites, trash, duplicates, tag, collection, and smart folder views.
@@ -65,8 +66,10 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Create a collection.
 - [ ] Add selected assets to a collection.
 - [ ] Use the collection manager to rename, recolor, edit description, set/clear cover, and delete a collection.
+- [ ] Open a collection in manual order, drag a row handle, use move top/up/down/bottom controls, reload, and confirm the saved order.
 - [ ] Create and use a smart folder.
 - [ ] Create smart folder conditions with media type, width, and height fields.
+- [ ] Use the smart folder manager to create, edit, delete, add/remove conditions, switch all/any mode, preview result count, and show results.
 
 ## Safety Workflows
 

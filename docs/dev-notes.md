@@ -34,6 +34,8 @@ Migration `004_permanent_delete_results.sql` adds permanent-delete failure/batch
 
 Migration `005_asset_organization_tools.sql` adds explicit collection cover metadata plus indexes for size, dimension, imported-date, collection-order, and smart-folder organization queries.
 
+Migration `006_smart_folder_and_order_indexes.sql` adds safe `IF NOT EXISTS` indexes for rating, extension, media type, and collection order queries. It does not touch `collections.cover_asset_id`, so existing databases that already applied migration `005` are not asked to add that column again.
+
 ## Library Folder Structure
 
 Each library is a portable folder:
@@ -123,6 +125,8 @@ There is no language-specific tag conversion API. User-created tag names are sto
 
 The center workspace supports both grid and list view. Grid view keeps drag-box selection over rendered cards. List view shows preview, name, extension, file size, dimensions, aspect ratio, rating, favorite state, tags, collection count, import date, and source path. List header buttons update the shared asset sort state, and click, Ctrl/Cmd-click, Shift-click, Enter, Space, and double-click keep the same selection/viewer behavior as the grid.
 
+List column settings are renderer-local display preferences. They are stored in `localStorage` as `listView.columns`, `listView.columnOrder`, and `listView.columnWidths`. The settings dialog supports show/hide, up/down order changes, width input, header drag-resize, and default restore. These settings do not alter asset metadata or SQLite.
+
 The toolbar owns the shared grid/list toggle, sort selector, filter popover, thumbnail size, file-name visibility, import, export, and settings controls. Sort and grid/list preferences are stored in renderer `localStorage`.
 
 The filter popover combines high-level library/favorites/trash/duplicates modes with advanced asset filters. Applying a draft updates the query once and clears selection so batch actions cannot accidentally target stale assets.
@@ -130,6 +134,10 @@ The filter popover combines high-level library/favorites/trash/duplicates modes 
 The collection manager is renderer UI over main-process collection APIs. It supports create, search, rename, description edit, color edit, explicit cover assignment from the active/selected asset, explicit cover clearing, and collection deletion. Deleting a collection removes collection membership rows through SQLite cascades; it never deletes asset records or library files.
 
 Collection cover thumbnails prefer an explicit active cover asset. When no explicit cover is set, the UI falls back to the first active asset in collection order.
+
+Collection reorder is persisted through `collections:reorder-assets`, backed by `collection_assets.sort_order`. Reorder controls are enabled only in collection views sorted by manual collection order. Dragging starts from the row handle, while blank grid/list dragging continues to belong to selection behavior. The API receives a visible ordered asset id list, validates membership, writes normalized `sort_order` values in a transaction, returns updated ids plus warnings/failures, and never deletes assets.
+
+The smart folder manager edits the existing `query_json` shape: `{ mode, conditions }`. Conditions keep raw enum/value ids and are not localized before storage. The UI localizes only labels for fields, operators, values, and status messages. Supported conditions include tag include/exclude, rating, favorite, recent days, media type, extension, orientation, width, height, memo contains/exists, and source URL exists. Preview counts call the main process with an unsaved query and use the same whitelisted SQL condition builder as saved smart folders.
 
 ## Viewer And Toolbar UX
 

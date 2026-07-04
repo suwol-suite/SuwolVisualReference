@@ -229,6 +229,22 @@ export async function runSmokeTest(): Promise<void> {
   if (collectionOrderAssets[0]?.id !== importedAsset.id || collectionOrderAssets[1]?.id !== duplicateAsset.id) {
     throw new Error(`Collection order sort did not preserve insertion order: ${JSON.stringify(collectionOrderAssets)}`);
   }
+  const reorderResult = db.reorderCollectionAssets({
+    collectionId: batchCollection.id,
+    assetIds: [duplicateAsset.id, importedAsset.id]
+  });
+  if (reorderResult.updatedCount < 2 || reorderResult.items[0] !== duplicateAsset.id) {
+    throw new Error(`Collection reorder did not update sort_order correctly: ${JSON.stringify(reorderResult)}`);
+  }
+  const reorderedCollectionAssets = db.queryAssets({
+    collectionId: batchCollection.id,
+    sort: { field: 'collectionOrder', direction: 'asc' },
+    limit: 10
+  }).items;
+  if (reorderedCollectionAssets[0]?.id !== duplicateAsset.id || reorderedCollectionAssets[1]?.id !== importedAsset.id) {
+    throw new Error(`Collection reorder query did not return the saved order: ${JSON.stringify(reorderedCollectionAssets)}`);
+  }
+  db.reorderCollectionAssets({ collectionId: batchCollection.id, assetIds: [importedAsset.id, duplicateAsset.id] });
   db.updateCollection({ id: batchCollection.id, coverAssetId: null });
   const collectionWithFallbackCover = db.listCollections().find((candidate) => candidate.id === batchCollection.id);
   if (collectionWithFallbackCover?.coverAssetId !== null || !collectionWithFallbackCover?.coverAssetThumbnailUrl) {
@@ -332,6 +348,32 @@ export async function runSmokeTest(): Promise<void> {
     mode: 'all',
     conditions: [{ field: 'rating', operator: '>=', value: 4 }]
   });
+  const smartPreviewCount = db.previewSmartFolderCount({
+    mode: 'all',
+    conditions: [
+      { field: 'tag', operator: 'contains', value: tag.id },
+      { field: 'width', operator: '>=', value: 300 },
+      { field: 'memo', operator: 'contains', value: 'Imported' }
+    ]
+  });
+  if (smartPreviewCount < 1) {
+    throw new Error(`Smart folder preview count missed the expected asset: ${smartPreviewCount}`);
+  }
+  const updatedSmartFolder = db.updateSmartFolder({
+    id: smartFolder.id,
+    name: 'Updated Smoke Smart Folder',
+    query: {
+      mode: 'all',
+      conditions: [
+        { field: 'tag', operator: 'contains', value: tag.id },
+        { field: 'extension', operator: '=', value: 'png' },
+        { field: 'sourceUrl', operator: 'exists', value: true }
+      ]
+    }
+  });
+  if (updatedSmartFolder.name !== 'Updated Smoke Smart Folder' || updatedSmartFolder.query.conditions.length !== 3) {
+    throw new Error(`Smart folder update did not persist query/name: ${JSON.stringify(updatedSmartFolder)}`);
+  }
   const smartFolderAssets = db.listAssets({ smartFolderId: smartFolder.id });
   if (!smartFolderAssets.some((asset) => asset.id === importedAsset.id)) {
     throw new Error('Smart folder query did not include the rated smoke asset.');

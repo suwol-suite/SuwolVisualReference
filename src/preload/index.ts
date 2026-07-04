@@ -13,6 +13,8 @@ import type {
   AssetPermanentDeleteResult,
   AssetRecord,
   AssetUpdateInput,
+  CollectionAssetOrderInput,
+  CollectionAssetOrderResult,
   CollectionCreateAndAddAssetsInput,
   CollectionCreateAndAddAssetsResult,
   CollectionRecord,
@@ -31,6 +33,7 @@ import type {
   RecentLibraryRecord,
   SmartFolderQuery,
   SmartFolderRecord,
+  SmartFolderUpdateInput,
   TagMergeInput,
   TagRecord
 } from '@shared/types';
@@ -91,6 +94,8 @@ const api = {
   updateCollection: (input: { id: string; name?: string; description?: string; color?: string; coverAssetId?: string | null }): Promise<CollectionRecord> =>
     ipcRenderer.invoke(IPC_CHANNELS.collectionsUpdate, input),
   deleteCollection: (id: string): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.collectionsDelete, id),
+  reorderCollectionAssets: (input: CollectionAssetOrderInput): Promise<CollectionAssetOrderResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.collectionsReorderAssets, input),
   createCollectionAndAddAssets: (input: CollectionCreateAndAddAssetsInput): Promise<CollectionCreateAndAddAssetsResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.collectionsCreateAndAddAssets, input),
   addAssetsToCollection: (input: { collectionId: string; assetIds: string[] }): Promise<CollectionRecord> =>
@@ -100,7 +105,11 @@ const api = {
   listSmartFolders: (): Promise<SmartFolderRecord[]> => ipcRenderer.invoke(IPC_CHANNELS.smartFoldersList),
   createSmartFolder: (input: { name: string; query: SmartFolderQuery }): Promise<SmartFolderRecord> =>
     ipcRenderer.invoke(IPC_CHANNELS.smartFoldersCreate, input),
+  updateSmartFolder: (input: SmartFolderUpdateInput): Promise<SmartFolderRecord> =>
+    ipcRenderer.invoke(IPC_CHANNELS.smartFoldersUpdate, input),
   deleteSmartFolder: (id: string): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.smartFoldersDelete, id),
+  previewSmartFolderCount: (query: SmartFolderQuery): Promise<number> =>
+    ipcRenderer.invoke(IPC_CHANNELS.smartFoldersPreview, query),
   listExportPresets: (locale?: LocaleCode): Promise<ExportPreset[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.exportPresetsList, locale),
   createExport: (input: ExportInput): Promise<ExportResult> => ipcRenderer.invoke(IPC_CHANNELS.exportCreate, input),

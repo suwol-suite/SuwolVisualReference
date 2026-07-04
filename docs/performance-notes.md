@@ -49,6 +49,8 @@ The list view reuses the same paged query window as the grid. It does not load h
 
 Sort and filter queries are backed by whitelisted SQL order clauses and targeted indexes for common organization dimensions: imported date, file size, dimensions, collection order, and smart folder update lookup.
 
+The second organization pass adds indexes for rating, extension, media type, and `(collection_id, sort_order, asset_id)` to keep smart folder and manual collection-order queries on indexed paths. List column settings stay in `localStorage` and do not change query shape.
+
 The app shell has explicit internal scroll ownership: body remains hidden, the center grid uses `overflow-y: auto`, and sidebar/inspector areas have independent scroll. This fixes the 18k-library issue where wheel input could be swallowed by the three-column layout.
 
 Desktop selection is intentionally scoped to loaded assets. Ctrl+A/Cmd+A and drag-box selection select only the currently loaded/rendered cards, avoiding a large `selectedIds` array for an unloaded 18k filtered result.
@@ -79,6 +81,8 @@ The smoke test now exercises the organization query surface on a generated tempo
 - Extension, favorite, minimum rating, included tag, excluded tag, memo, recency, and duplicate-only filters.
 - Collection cover update and fallback cover lookup.
 - Collection-order sorting inside a collection.
+
+The smoke test also verifies collection reorder persistence and smart folder update/preview behavior on generated fixtures.
 
 ## Remaining Bottlenecks
 

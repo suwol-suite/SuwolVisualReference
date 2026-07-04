@@ -8,6 +8,7 @@ import type {
   AssetPermanentDeleteResult,
   AssetRecord,
   AssetSort,
+  CollectionAssetOrderResult,
   CollectionRecord,
   DuplicateGroup,
   DuplicateGroupQuery,
@@ -21,6 +22,7 @@ import type {
   RecentLibraryRecord,
   SmartFolderQuery,
   SmartFolderRecord,
+  SmartFolderUpdateInput,
   TagMergeInput,
   TagRecord
 } from '@shared/types';
@@ -136,12 +138,15 @@ type RefForgeState = {
   createCollection: (name: string) => Promise<CollectionRecord | null>;
   updateCollection: (input: { id: string; name?: string; description?: string; color?: string; coverAssetId?: string | null }) => Promise<void>;
   deleteCollection: (id: string) => Promise<void>;
+  reorderCollectionAssets: (collectionId: string, assetIds: string[]) => Promise<CollectionAssetOrderResult | null>;
   addSelectionToCollection: (collectionId: string) => Promise<void>;
   createCollectionAndAddSelection: (name: string) => Promise<AssetBatchOperationResult | null>;
   addSelectionToCollectionBatch: (collectionId: string) => Promise<AssetBatchOperationResult | null>;
   removeAssetFromCollection: (collectionId: string, assetId: string) => Promise<void>;
   createSmartFolder: (name: string, query: SmartFolderQuery) => Promise<void>;
+  updateSmartFolder: (input: SmartFolderUpdateInput) => Promise<void>;
   deleteSmartFolder: (id: string) => Promise<void>;
+  previewSmartFolderCount: (query: SmartFolderQuery) => Promise<number | null>;
   createExport: (input: ExportInput) => Promise<void>;
   openPath: (targetPath: string) => Promise<void>;
   dismissImportSummary: () => void;
@@ -469,6 +474,7 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
       trashOnly: false,
       duplicateOnly: false,
       smartFolderId: null,
+      assetSort: collectionId ? { field: 'collectionOrder', direction: 'asc' } : get().assetSort,
       selectedIds: [],
       activeAssetId: null,
       selectionAnchorId: null
@@ -962,6 +968,18 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
     }
   },
 
+  reorderCollectionAssets: async (collectionId, assetIds) => {
+    try {
+      const result = await window.refForge.reorderCollectionAssets({ collectionId, assetIds });
+      await get().loadMetadata();
+      await get().loadAssets();
+      return result;
+    } catch (error) {
+      set({ error: toMessage(error) });
+      return null;
+    }
+  },
+
   addSelectionToCollection: async (collectionId) => {
     const assetIds = get().selectedIds;
     if (assetIds.length === 0) {
@@ -1035,6 +1053,18 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
     }
   },
 
+  updateSmartFolder: async (input) => {
+    try {
+      await window.refForge.updateSmartFolder(input);
+      await get().loadMetadata();
+      if (get().smartFolderId === input.id) {
+        await get().loadAssets();
+      }
+    } catch (error) {
+      set({ error: toMessage(error) });
+    }
+  },
+
   deleteSmartFolder: async (id) => {
     try {
       await window.refForge.deleteSmartFolder(id);
@@ -1045,6 +1075,15 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
       await get().loadAssets();
     } catch (error) {
       set({ error: toMessage(error) });
+    }
+  },
+
+  previewSmartFolderCount: async (query) => {
+    try {
+      return await window.refForge.previewSmartFolderCount(query);
+    } catch (error) {
+      set({ error: toMessage(error) });
+      return null;
     }
   },
 

@@ -15,11 +15,16 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
   Archive,
   Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ChevronsDown,
+  ChevronsUp,
+  Columns3,
   Copy,
   Database,
   Eye,
@@ -30,6 +35,7 @@ import {
   FolderOpen,
   FolderPlus,
   GitMerge,
+  GripVertical,
   Grid2X2,
   Heart,
   Image,
@@ -48,7 +54,19 @@ import {
   ZoomOut,
   X
 } from 'lucide-react';
-import type { AssetFilters, AssetRecord, AssetSort, CollectionRecord, DuplicateGroup, ExportInput, ExportPreset, SmartFolderCondition } from '@shared/types';
+import type {
+  AssetFilters,
+  AssetRecord,
+  AssetSort,
+  AssetSortField,
+  CollectionRecord,
+  DuplicateGroup,
+  ExportInput,
+  ExportPreset,
+  SmartFolderCondition,
+  SmartFolderQuery,
+  SmartFolderRecord
+} from '@shared/types';
 import { SUPPORTED_LANGUAGES } from '@shared/i18n/languages';
 import type { LanguagePreference } from '@shared/i18n/types';
 import brandIconUrl from '@brand/icon.svg';
@@ -75,7 +93,77 @@ const ASSET_SORT_OPTIONS: Array<{ id: string; sort: AssetSort }> = [
   { id: 'pixelCount-asc', sort: { field: 'pixelCount', direction: 'asc' } },
   { id: 'rating-desc', sort: { field: 'rating', direction: 'desc' } },
   { id: 'rating-asc', sort: { field: 'rating', direction: 'asc' } },
-  { id: 'extension-asc', sort: { field: 'extension', direction: 'asc' } }
+  { id: 'extension-asc', sort: { field: 'extension', direction: 'asc' } },
+  { id: 'collectionOrder-asc', sort: { field: 'collectionOrder', direction: 'asc' } }
+];
+
+type ListColumnId =
+  | 'preview'
+  | 'name'
+  | 'extension'
+  | 'size'
+  | 'dimensions'
+  | 'ratio'
+  | 'rating'
+  | 'favorite'
+  | 'tags'
+  | 'collections'
+  | 'imported'
+  | 'source';
+
+type ListColumnDefinition = {
+  id: ListColumnId;
+  labelKey: string;
+  defaultWidth: number;
+  minWidth: number;
+  maxWidth: number;
+  sortField?: AssetSortField;
+};
+
+type ListColumnSettings = {
+  columns: Record<ListColumnId, boolean>;
+  columnOrder: ListColumnId[];
+  columnWidths: Record<ListColumnId, number>;
+};
+
+const LIST_COLUMN_DEFINITIONS: ListColumnDefinition[] = [
+  { id: 'preview', labelKey: 'list.columns.preview', defaultWidth: 58, minWidth: 52, maxWidth: 88 },
+  { id: 'name', labelKey: 'list.columns.name', defaultWidth: 240, minWidth: 150, maxWidth: 520, sortField: 'title' },
+  { id: 'extension', labelKey: 'list.columns.extension', defaultWidth: 78, minWidth: 62, maxWidth: 110, sortField: 'extension' },
+  { id: 'size', labelKey: 'list.columns.size', defaultWidth: 96, minWidth: 76, maxWidth: 140, sortField: 'sizeBytes' },
+  { id: 'dimensions', labelKey: 'list.columns.dimensions', defaultWidth: 118, minWidth: 92, maxWidth: 170, sortField: 'pixelCount' },
+  { id: 'ratio', labelKey: 'list.columns.ratio', defaultWidth: 76, minWidth: 64, maxWidth: 110 },
+  { id: 'rating', labelKey: 'list.columns.rating', defaultWidth: 76, minWidth: 64, maxWidth: 110, sortField: 'rating' },
+  { id: 'favorite', labelKey: 'list.columns.favorite', defaultWidth: 92, minWidth: 78, maxWidth: 130 },
+  { id: 'tags', labelKey: 'list.columns.tags', defaultWidth: 170, minWidth: 110, maxWidth: 360 },
+  { id: 'collections', labelKey: 'list.columns.collections', defaultWidth: 92, minWidth: 76, maxWidth: 140 },
+  { id: 'imported', labelKey: 'list.columns.imported', defaultWidth: 142, minWidth: 112, maxWidth: 210, sortField: 'importedAt' },
+  { id: 'source', labelKey: 'list.columns.source', defaultWidth: 220, minWidth: 130, maxWidth: 520 }
+];
+
+const LIST_COLUMN_IDS = LIST_COLUMN_DEFINITIONS.map((column) => column.id);
+const DEFAULT_LIST_COLUMN_SETTINGS: ListColumnSettings = {
+  columns: Object.fromEntries(LIST_COLUMN_IDS.map((id) => [id, true])) as Record<ListColumnId, boolean>,
+  columnOrder: LIST_COLUMN_IDS,
+  columnWidths: Object.fromEntries(LIST_COLUMN_DEFINITIONS.map((column) => [column.id, column.defaultWidth])) as Record<
+    ListColumnId,
+    number
+  >
+};
+
+const SMART_FOLDER_FIELD_OPTIONS: SmartFolderCondition['field'][] = [
+  'tag',
+  'tagExcluded',
+  'rating',
+  'favorite',
+  'recentDays',
+  'mediaType',
+  'extension',
+  'orientation',
+  'width',
+  'height',
+  'memo',
+  'sourceUrl'
 ];
 
 export function App(): JSX.Element {
@@ -416,6 +504,7 @@ function Sidebar(): JSX.Element {
   const [collectionName, setCollectionName] = useState('');
   const [tagManagerOpen, setTagManagerOpen] = useState(false);
   const [collectionManagerOpen, setCollectionManagerOpen] = useState(false);
+  const [smartFolderManagerOpen, setSmartFolderManagerOpen] = useState(false);
   const [hideUnusedTags, setHideUnusedTags] = useState(() => window.localStorage.getItem('refForge:hideUnusedTags') === 'true');
   const [smartForm, setSmartForm] = useState({
     name: '',
@@ -466,27 +555,32 @@ function Sidebar(): JSX.Element {
 
       <div className={styles.sideHeader}>
         <span>{t('sidebar.smartFolders')}</span>
-        <button
-          title={t('sidebar.createSmartFolder')}
-          onClick={() => {
-            if (!smartForm.name.trim()) {
-              return;
-            }
-            void createSmartFolder(smartForm.name.trim(), {
-              mode: 'all',
-              conditions: [
-                {
-                  field: smartForm.field,
-                  operator: smartForm.operator,
-                  value: normalizeSmartValue(smartForm.field, smartForm.value)
-                }
-              ]
-            });
-            setSmartForm((current) => ({ ...current, name: '' }));
-          }}
-        >
-          <Plus size={14} />
-        </button>
+        <div className={styles.sideHeaderActions}>
+          <button title={t('smartFolder.managerOpen')} onClick={() => setSmartFolderManagerOpen(true)}>
+            <Settings size={14} />
+          </button>
+          <button
+            title={t('sidebar.createSmartFolder')}
+            onClick={() => {
+              if (!smartForm.name.trim()) {
+                return;
+              }
+              void createSmartFolder(smartForm.name.trim(), {
+                mode: 'all',
+                conditions: [
+                  {
+                    field: smartForm.field,
+                    operator: getSmartOperator(smartForm.field),
+                    value: normalizeSmartValue(smartForm.field, smartForm.value)
+                  }
+                ]
+              });
+              setSmartForm((current) => ({ ...current, name: '' }));
+            }}
+          >
+            <Plus size={14} />
+          </button>
+        </div>
       </div>
       <form
         className={styles.smartFolderForm}
@@ -500,7 +594,7 @@ function Sidebar(): JSX.Element {
             conditions: [
               {
                 field: smartForm.field,
-                operator: smartForm.operator,
+                operator: getSmartOperator(smartForm.field),
                 value: normalizeSmartValue(smartForm.field, smartForm.value)
               }
             ]
@@ -526,6 +620,7 @@ function Sidebar(): JSX.Element {
           <option value="rating">{t('smartFolder.fields.rating')}</option>
           <option value="favorite">{t('smartFolder.fields.favorite')}</option>
           <option value="tag">{t('smartFolder.fields.tag')}</option>
+          <option value="tagExcluded">{t('smartFolder.fields.tagExcluded')}</option>
           <option value="extension">{t('smartFolder.fields.extension')}</option>
           <option value="mediaType">{t('smartFolder.fields.mediaType')}</option>
           <option value="orientation">{t('smartFolder.fields.orientation')}</option>
@@ -553,7 +648,14 @@ function Sidebar(): JSX.Element {
               {folder.name}
               <small>{formatSmartFolderQuery(folder.query, t)}</small>
             </button>
-            <button title={t('sidebar.deleteSmartFolder')} onClick={() => void deleteSmartFolder(folder.id)}>
+            <button
+              title={t('sidebar.deleteSmartFolder')}
+              onClick={() => {
+                if (window.confirm(t('smartFolder.confirmDelete', { name: folder.name }))) {
+                  void deleteSmartFolder(folder.id);
+                }
+              }}
+            >
               <X size={13} />
             </button>
           </div>
@@ -654,6 +756,7 @@ function Sidebar(): JSX.Element {
       </div>
       {tagManagerOpen ? <TagManagerDialog onClose={() => setTagManagerOpen(false)} /> : null}
       {collectionManagerOpen ? <CollectionManagerDialog onClose={() => setCollectionManagerOpen(false)} /> : null}
+      {smartFolderManagerOpen ? <SmartFolderManagerDialog onClose={() => setSmartFolderManagerOpen(false)} /> : null}
     </aside>
   );
 }
@@ -1130,6 +1233,7 @@ function AssetGrid(): JSX.Element {
   const selectAsset = useRefForgeStore((state) => state.selectAsset);
   const selectAssets = useRefForgeStore((state) => state.selectAssets);
   const loadMoreAssets = useRefForgeStore((state) => state.loadMoreAssets);
+  const reorderCollectionAssets = useRefForgeStore((state) => state.reorderCollectionAssets);
   const importPaths = useRefForgeStore((state) => state.importPaths);
   const importing = useRefForgeStore((state) => state.importing);
   const loading = useRefForgeStore((state) => state.loading);
@@ -1274,7 +1378,18 @@ function AssetGrid(): JSX.Element {
           </p>
         </div>
       ) : viewMode === 'list' ? (
-        <AssetList assets={assets} selectedSet={selectedSet} onSelect={selectAsset} />
+        <AssetList
+          assets={assets}
+          selectedSet={selectedSet}
+          onSelect={selectAsset}
+          canReorder={Boolean(collectionId && assetSort.field === 'collectionOrder' && assetSort.direction === 'asc')}
+          hasMore={assetHasMore}
+          onReorder={(orderedAssetIds) => {
+            if (collectionId) {
+              void reorderCollectionAssets(collectionId, orderedAssetIds);
+            }
+          }}
+        />
       ) : (
         <div
           className={styles.assetGrid}
@@ -1316,31 +1431,107 @@ function AssetGrid(): JSX.Element {
 function AssetList({
   assets,
   selectedSet,
-  onSelect
+  onSelect,
+  canReorder = false,
+  hasMore,
+  onReorder
 }: {
   assets: AssetRecord[];
   selectedSet: Set<string>;
   onSelect: (assetId: string, mode?: 'replace' | 'toggle' | 'range') => void;
+  canReorder?: boolean;
+  hasMore: boolean;
+  onReorder: (orderedAssetIds: string[]) => void;
 }): JSX.Element {
   const { t, i18n: i18nInstance } = useTranslation('common');
   const assetSort = useRefForgeStore((state) => state.assetSort);
   const setAssetSort = useRefForgeStore((state) => state.setAssetSort);
+  const [settings, setSettings] = useState(readListColumnSettings);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [draggedAssetId, setDraggedAssetId] = useState<string | null>(null);
+  const visibleColumns = useMemo(
+    () =>
+      settings.columnOrder
+        .map((columnId) => getListColumnDefinition(columnId))
+        .filter((column): column is ListColumnDefinition => Boolean(column && settings.columns[column.id])),
+    [settings]
+  );
+  const gridTemplateColumns = `${canReorder ? '116px ' : ''}${visibleColumns
+    .map((column) => `${settings.columnWidths[column.id] ?? column.defaultWidth}px`)
+    .join(' ')}`;
+
+  const updateSettings = (updater: (current: ListColumnSettings) => ListColumnSettings): void => {
+    setSettings((current) => {
+      const next = normalizeListColumnSettings(updater(current));
+      writeListColumnSettings(next);
+      return next;
+    });
+  };
+
+  const moveAssetInList = (assetId: string, targetIndex: number): void => {
+    const currentIds = assets.map((asset) => asset.id);
+    const fromIndex = currentIds.indexOf(assetId);
+    if (fromIndex < 0) {
+      return;
+    }
+    const nextIds = moveArrayItem(currentIds, fromIndex, clampNumber(targetIndex, 0, currentIds.length - 1));
+    onReorder(nextIds);
+  };
+
+  const resizeColumn = (column: ListColumnDefinition, event: ReactPointerEvent<HTMLButtonElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    const startX = event.clientX;
+    const startWidth = settings.columnWidths[column.id] ?? column.defaultWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const handlePointerMove = (moveEvent: PointerEvent): void => {
+      const width = clampNumber(startWidth + moveEvent.clientX - startX, column.minWidth, column.maxWidth);
+      updateSettings((current) => ({
+        ...current,
+        columnWidths: {
+          ...current.columnWidths,
+          [column.id]: width
+        }
+      }));
+    };
+    const stopResize = (): void => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', stopResize);
+    };
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', stopResize);
+  };
 
   return (
     <div className={styles.assetList}>
-      <div className={styles.assetListHeader}>
-        <span>{t('list.columns.preview')}</span>
-        <button onClick={() => setAssetSort(toggleSort(assetSort, 'title'))}>{t('list.columns.name')}</button>
-        <button onClick={() => setAssetSort(toggleSort(assetSort, 'extension'))}>{t('list.columns.extension')}</button>
-        <button onClick={() => setAssetSort(toggleSort(assetSort, 'sizeBytes'))}>{t('list.columns.size')}</button>
-        <button onClick={() => setAssetSort(toggleSort(assetSort, 'pixelCount'))}>{t('list.columns.dimensions')}</button>
-        <span>{t('list.columns.ratio')}</span>
-        <button onClick={() => setAssetSort(toggleSort(assetSort, 'rating'))}>{t('list.columns.rating')}</button>
-        <span>{t('list.columns.favorite')}</span>
-        <span>{t('list.columns.tags')}</span>
-        <span>{t('list.columns.collections')}</span>
-        <button onClick={() => setAssetSort(toggleSort(assetSort, 'importedAt'))}>{t('list.columns.imported')}</button>
-        <span>{t('list.columns.source')}</span>
+      <div className={styles.assetListToolbar}>
+        <button type="button" className={styles.secondaryButton} onClick={() => setSettingsOpen(true)}>
+          <Columns3 size={15} />
+          {t('list.settings.open')}
+        </button>
+        {canReorder ? <span>{hasMore ? t('collectionOrder.partialPageHint') : t('collectionOrder.dragHint')}</span> : null}
+      </div>
+      <div className={styles.assetListHeader} style={{ gridTemplateColumns }}>
+        {canReorder ? <span className={styles.assetListHeaderCell}>{t('list.columns.order')}</span> : null}
+        {visibleColumns.map((column) => (
+          <span key={column.id} className={styles.assetListHeaderCell}>
+            {column.sortField ? (
+              <button onClick={() => setAssetSort(toggleSort(assetSort, column.sortField ?? 'importedAt'))}>{t(column.labelKey)}</button>
+            ) : (
+              t(column.labelKey)
+            )}
+            <button
+              type="button"
+              className={styles.columnResizeHandle}
+              title={t('list.settings.resizeColumn')}
+              onPointerDown={(event) => resizeColumn(column, event)}
+            />
+          </span>
+        ))}
       </div>
       {assets.map((asset) => (
         <AssetListRow
@@ -1348,9 +1539,24 @@ function AssetList({
           asset={asset}
           selected={selectedSet.has(asset.id)}
           language={i18nInstance.language}
+          columns={visibleColumns}
+          gridTemplateColumns={gridTemplateColumns}
+          canReorder={canReorder}
+          assetIndex={assets.findIndex((candidate) => candidate.id === asset.id)}
+          assetCount={assets.length}
+          draggedAssetId={draggedAssetId}
+          setDraggedAssetId={setDraggedAssetId}
+          onMoveAsset={moveAssetInList}
           onSelect={onSelect}
         />
       ))}
+      {settingsOpen ? (
+        <ListColumnSettingsDialog
+          settings={settings}
+          onChange={updateSettings}
+          onClose={() => setSettingsOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1359,21 +1565,38 @@ function AssetListRow({
   asset,
   selected,
   language,
+  columns,
+  gridTemplateColumns,
+  canReorder,
+  assetIndex,
+  assetCount,
+  draggedAssetId,
+  setDraggedAssetId,
+  onMoveAsset,
   onSelect
 }: {
   asset: AssetRecord;
   selected: boolean;
   language: string;
+  columns: ListColumnDefinition[];
+  gridTemplateColumns: string;
+  canReorder: boolean;
+  assetIndex: number;
+  assetCount: number;
+  draggedAssetId: string | null;
+  setDraggedAssetId: (assetId: string | null) => void;
+  onMoveAsset: (assetId: string, targetIndex: number) => void;
   onSelect: (assetId: string, mode?: 'replace' | 'toggle' | 'range') => void;
 }): JSX.Element {
   const { t } = useTranslation('common');
   const openViewer = useRefForgeStore((state) => state.openViewer);
-  const [imageFailed, setImageFailed] = useState(false);
   const modeFromEvent = (event: { shiftKey: boolean; metaKey: boolean; ctrlKey: boolean }): 'replace' | 'toggle' | 'range' =>
     event.shiftKey ? 'range' : event.metaKey || event.ctrlKey ? 'toggle' : 'replace';
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       className={[
         styles.assetListRow,
         selected ? styles.assetListRowSelected : '',
@@ -1382,6 +1605,7 @@ function AssetListRow({
       ]
         .filter(Boolean)
         .join(' ')}
+      style={{ gridTemplateColumns }}
       onClick={(event) => onSelect(asset.id, modeFromEvent(event))}
       onDoubleClick={() => openViewer(asset.id)}
       onKeyDown={(event) => {
@@ -1392,31 +1616,232 @@ function AssetListRow({
           openViewer(asset.id);
         }
       }}
+      onDragOver={(event) => {
+        if (canReorder && draggedAssetId && draggedAssetId !== asset.id) {
+          event.preventDefault();
+        }
+      }}
+      onDrop={(event) => {
+        if (canReorder && draggedAssetId && draggedAssetId !== asset.id) {
+          event.preventDefault();
+          onMoveAsset(draggedAssetId, assetIndex);
+          setDraggedAssetId(null);
+        }
+      }}
       title={asset.originalRelativePath ?? asset.originalFileName}
       data-asset-tile="true"
     >
-      <span className={styles.listThumb}>
-        {asset.thumbnailUrl && !imageFailed ? (
-          <img src={asset.thumbnailUrl} alt={asset.title} loading="lazy" draggable={false} onError={() => setImageFailed(true)} />
-        ) : (
-          <Image size={20} />
-        )}
-      </span>
-      <span className={styles.listTitle}>
-        <strong>{asset.title}</strong>
-        <small>{asset.originalFileName}</small>
-      </span>
-      <span>{asset.extension.toUpperCase()}</span>
-      <span>{formatBytes(asset.sizeBytes, language)}</span>
-      <span>{asset.width && asset.height ? `${asset.width}x${asset.height}` : t('status.unknown')}</span>
-      <span>{formatRatio(asset.width, asset.height, t)}</span>
-      <span>{t('assetGrid.ratingCompact', { rating: asset.rating })}</span>
-      <span>{asset.isFavorite ? t('status.enabled') : t('status.disabled')}</span>
-      <span className={styles.listPills}>{formatTagSummary(asset.tags, t)}</span>
-      <span>{asset.collections.length}</span>
-      <span>{formatDateTime(asset.importedAt, language)}</span>
-      <span className={styles.listPath}>{asset.originalRelativePath ?? t('status.none')}</span>
-    </button>
+      {canReorder ? (
+        <span className={styles.listReorderCell} onClick={(event) => event.stopPropagation()}>
+          <span
+            className={styles.dragHandle}
+            draggable
+            title={t('collectionOrder.dragHandle')}
+            onDragStart={(event) => {
+              event.dataTransfer.effectAllowed = 'move';
+              event.dataTransfer.setData('text/plain', asset.id);
+              setDraggedAssetId(asset.id);
+            }}
+            onDragEnd={() => setDraggedAssetId(null)}
+          >
+            <GripVertical size={15} />
+          </span>
+          <button type="button" title={t('collectionOrder.moveTop')} disabled={assetIndex === 0} onClick={() => onMoveAsset(asset.id, 0)}>
+            <ChevronsUp size={13} />
+          </button>
+          <button
+            type="button"
+            title={t('collectionOrder.moveUp')}
+            disabled={assetIndex === 0}
+            onClick={() => onMoveAsset(asset.id, assetIndex - 1)}
+          >
+            <ArrowUp size={13} />
+          </button>
+          <button
+            type="button"
+            title={t('collectionOrder.moveDown')}
+            disabled={assetIndex >= assetCount - 1}
+            onClick={() => onMoveAsset(asset.id, assetIndex + 1)}
+          >
+            <ArrowDown size={13} />
+          </button>
+          <button
+            type="button"
+            title={t('collectionOrder.moveBottom')}
+            disabled={assetIndex >= assetCount - 1}
+            onClick={() => onMoveAsset(asset.id, assetCount - 1)}
+          >
+            <ChevronsDown size={13} />
+          </button>
+        </span>
+      ) : null}
+      {columns.map((column) => (
+        <ListColumnValue key={column.id} columnId={column.id} asset={asset} language={language} />
+      ))}
+    </div>
+  );
+}
+
+function ListColumnValue({
+  columnId,
+  asset,
+  language
+}: {
+  columnId: ListColumnId;
+  asset: AssetRecord;
+  language: string;
+}): JSX.Element {
+  const { t } = useTranslation('common');
+  const [imageFailed, setImageFailed] = useState(false);
+  switch (columnId) {
+    case 'preview':
+      return (
+        <span className={styles.listThumb}>
+          {asset.thumbnailUrl && !imageFailed ? (
+            <img src={asset.thumbnailUrl} alt={asset.title} loading="lazy" draggable={false} onError={() => setImageFailed(true)} />
+          ) : (
+            <Image size={20} />
+          )}
+        </span>
+      );
+    case 'name':
+      return (
+        <span className={styles.listTitle}>
+          <strong>{asset.title}</strong>
+          <small>{asset.originalFileName}</small>
+        </span>
+      );
+    case 'extension':
+      return <span>{asset.extension.toUpperCase()}</span>;
+    case 'size':
+      return <span>{formatBytes(asset.sizeBytes, language)}</span>;
+    case 'dimensions':
+      return <span>{asset.width && asset.height ? `${asset.width}x${asset.height}` : t('status.unknown')}</span>;
+    case 'ratio':
+      return <span>{formatRatio(asset.width, asset.height, t)}</span>;
+    case 'rating':
+      return <span>{t('assetGrid.ratingCompact', { rating: asset.rating })}</span>;
+    case 'favorite':
+      return <span>{asset.isFavorite ? t('status.enabled') : t('status.disabled')}</span>;
+    case 'tags':
+      return <span className={styles.listPills}>{formatTagSummary(asset.tags, t)}</span>;
+    case 'collections':
+      return <span>{asset.collections.length}</span>;
+    case 'imported':
+      return <span>{formatDateTime(asset.importedAt, language)}</span>;
+    case 'source':
+      return <span className={styles.listPath}>{asset.originalRelativePath ?? t('status.none')}</span>;
+    default:
+      return <span />;
+  }
+}
+
+function ListColumnSettingsDialog({
+  settings,
+  onChange,
+  onClose
+}: {
+  settings: ListColumnSettings;
+  onChange: (updater: (current: ListColumnSettings) => ListColumnSettings) => void;
+  onClose: () => void;
+}): JSX.Element {
+  const { t } = useTranslation('common');
+  const moveColumn = (columnId: ListColumnId, direction: -1 | 1): void => {
+    onChange((current) => {
+      const index = current.columnOrder.indexOf(columnId);
+      if (index < 0) {
+        return current;
+      }
+      return {
+        ...current,
+        columnOrder: moveArrayItem(current.columnOrder, index, clampNumber(index + direction, 0, current.columnOrder.length - 1))
+      };
+    });
+  };
+
+  return (
+    <div className={styles.modalBackdrop}>
+      <section className={styles.managementDialog}>
+        <div className={styles.modalHeader}>
+          <div>
+            <h2>{t('list.settings.title')}</h2>
+            <span>{t('list.settings.subtitle')}</span>
+          </div>
+          <button type="button" title={t('actions.close')} onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+        <div className={styles.managerList}>
+          {settings.columnOrder.map((columnId, index) => {
+            const column = getListColumnDefinition(columnId);
+            if (!column) {
+              return null;
+            }
+            return (
+              <div key={column.id} className={styles.columnSettingsRow}>
+                <label className={styles.checkControl}>
+                  <input
+                    type="checkbox"
+                    checked={settings.columns[column.id]}
+                    onChange={(event) =>
+                      onChange((current) => ({
+                        ...current,
+                        columns: {
+                          ...current.columns,
+                          [column.id]: event.target.checked
+                        }
+                      }))
+                    }
+                  />
+                  {t(column.labelKey)}
+                </label>
+                <input
+                  type="number"
+                  min={column.minWidth}
+                  max={column.maxWidth}
+                  value={settings.columnWidths[column.id] ?? column.defaultWidth}
+                  onChange={(event) =>
+                    onChange((current) => ({
+                      ...current,
+                      columnWidths: {
+                        ...current.columnWidths,
+                        [column.id]: clampNumber(Number(event.target.value) || column.defaultWidth, column.minWidth, column.maxWidth)
+                      }
+                    }))
+                  }
+                  title={t('list.settings.width')}
+                />
+                <button type="button" title={t('list.settings.moveUp')} disabled={index === 0} onClick={() => moveColumn(column.id, -1)}>
+                  <ArrowUp size={14} />
+                </button>
+                <button
+                  type="button"
+                  title={t('list.settings.moveDown')}
+                  disabled={index === settings.columnOrder.length - 1}
+                  onClick={() => moveColumn(column.id, 1)}
+                >
+                  <ArrowDown size={14} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <div className={styles.filterActions}>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={() => onChange(() => DEFAULT_LIST_COLUMN_SETTINGS)}
+          >
+            <RotateCcw size={15} />
+            {t('list.settings.reset')}
+          </button>
+          <button type="button" className={styles.primaryButton} onClick={onClose}>
+            <Check size={15} />
+            {t('actions.close')}
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -1796,6 +2221,351 @@ function CollectionManagerRow({
       </button>
     </div>
   );
+}
+
+function SmartFolderManagerDialog({ onClose }: { onClose: () => void }): JSX.Element {
+  const { t } = useTranslation('common');
+  const smartFolders = useRefForgeStore((state) => state.smartFolders);
+  const tags = useRefForgeStore((state) => state.tags);
+  const config = useRefForgeStore((state) => state.config);
+  const createSmartFolder = useRefForgeStore((state) => state.createSmartFolder);
+  const updateSmartFolder = useRefForgeStore((state) => state.updateSmartFolder);
+  const deleteSmartFolder = useRefForgeStore((state) => state.deleteSmartFolder);
+  const previewSmartFolderCount = useRefForgeStore((state) => state.previewSmartFolderCount);
+  const setSmartFolderFilter = useRefForgeStore((state) => state.setSmartFolderFilter);
+  const [selectedId, setSelectedId] = useState<string | null>(smartFolders[0]?.id ?? null);
+  const selectedFolder = smartFolders.find((folder) => folder.id === selectedId) ?? null;
+  const [draft, setDraft] = useState(() => createSmartFolderDraft(selectedFolder));
+  const [previewCount, setPreviewCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    setDraft(createSmartFolderDraft(selectedFolder));
+  }, [selectedFolder]);
+
+  useEffect(() => {
+    let active = true;
+    const timer = window.setTimeout(() => {
+      void previewSmartFolderCount(normalizeSmartFolderDraft(draft.query)).then((count) => {
+        if (active) {
+          setPreviewCount(count);
+        }
+      });
+    }, 180);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [draft.query, previewSmartFolderCount]);
+
+  const saveDisabled = !draft.name.trim() || draft.query.conditions.length === 0 || !isSmartQueryValid(draft.query);
+
+  return (
+    <div className={styles.modalBackdrop}>
+      <section className={styles.managementDialog}>
+        <div className={styles.modalHeader}>
+          <div>
+            <h2>{t('smartFolder.managerTitle')}</h2>
+            <span>{t('smartFolder.managerSubtitle')}</span>
+          </div>
+          <button type="button" title={t('actions.close')} onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className={styles.smartFolderManagerLayout}>
+          <div className={styles.smartFolderList}>
+            <button
+              type="button"
+              className={selectedId === null ? styles.sideItemActive : styles.sideItem}
+              onClick={() => setSelectedId(null)}
+            >
+              <Plus size={16} />
+              {t('smartFolder.newFolder')}
+            </button>
+            {smartFolders.map((folder) => (
+              <button
+                key={folder.id}
+                type="button"
+                className={selectedId === folder.id ? styles.sideItemActive : styles.sideItem}
+                onClick={() => setSelectedId(folder.id)}
+              >
+                <Filter size={16} />
+                {folder.name}
+                <small>{formatSmartFolderQuery(folder.query, t)}</small>
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.smartFolderEditor}>
+            <label>
+              {t('smartFolder.name')}
+              <input
+                value={draft.name}
+                onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+                placeholder={t('sidebar.smartFolderName')}
+              />
+            </label>
+            <label>
+              {t('smartFolder.mode')}
+              <select
+                value={draft.query.mode}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    query: { ...current.query, mode: event.target.value === 'any' ? 'any' : 'all' }
+                  }))
+                }
+              >
+                <option value="all">{t('smartFolder.modes.all')}</option>
+                <option value="any">{t('smartFolder.modes.any')}</option>
+              </select>
+            </label>
+
+            <div className={styles.conditionList}>
+              {draft.query.conditions.map((condition, index) => (
+                <SmartFolderConditionRow
+                  key={`${index}-${condition.field}`}
+                  condition={condition}
+                  tags={tags}
+                  onChange={(nextCondition) =>
+                    setDraft((current) => ({
+                      ...current,
+                      query: {
+                        ...current.query,
+                        conditions: current.query.conditions.map((candidate, candidateIndex) =>
+                          candidateIndex === index ? nextCondition : candidate
+                        )
+                      }
+                    }))
+                  }
+                  onDelete={() =>
+                    setDraft((current) => ({
+                      ...current,
+                      query: {
+                        ...current.query,
+                        conditions: current.query.conditions.filter((_, candidateIndex) => candidateIndex !== index)
+                      }
+                    }))
+                  }
+                />
+              ))}
+              {draft.query.conditions.length === 0 ? <div className={styles.miniEmpty}>{t('smartFolder.noConditions')}</div> : null}
+            </div>
+            <datalist id="smart-folder-extensions">
+              {(config?.supportedImageExtensions ?? []).map((extension) => (
+                <option key={extension} value={extension} />
+              ))}
+            </datalist>
+
+            <div className={styles.managementToolbar}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    query: {
+                      ...current.query,
+                      conditions: [...current.query.conditions, createDefaultSmartCondition(tags[0]?.id)]
+                    }
+                  }))
+                }
+              >
+                <Plus size={15} />
+                {t('smartFolder.addCondition')}
+              </button>
+              <span>{t('smartFolder.previewCount', { count: previewCount ?? 0 })}</span>
+            </div>
+
+            {!isSmartQueryValid(draft.query) ? <div className={styles.inlineError}>{t('smartFolder.conditionError')}</div> : null}
+
+            <div className={styles.modalActions}>
+              {selectedFolder ? (
+                <>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => {
+                      void setSmartFolderFilter(selectedFolder.id);
+                      onClose();
+                    }}
+                  >
+                    <Filter size={15} />
+                    {t('smartFolder.showResults')}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => {
+                      if (window.confirm(t('smartFolder.confirmDelete', { name: selectedFolder.name }))) {
+                        void deleteSmartFolder(selectedFolder.id);
+                        setSelectedId(null);
+                      }
+                    }}
+                  >
+                    <Trash2 size={15} />
+                    {t('actions.delete')}
+                  </button>
+                </>
+              ) : null}
+              <button type="button" className={styles.secondaryButton} onClick={onClose}>
+                {t('actions.cancel')}
+              </button>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                disabled={saveDisabled}
+                onClick={() => {
+                  const query = normalizeSmartFolderDraft(draft.query);
+                  if (selectedFolder) {
+                    void updateSmartFolder({ id: selectedFolder.id, name: draft.name.trim(), query });
+                    return;
+                  }
+                  void createSmartFolder(draft.name.trim(), query);
+                  setSelectedId(null);
+                  setDraft(createSmartFolderDraft(null));
+                }}
+              >
+                <Check size={15} />
+                {selectedFolder ? t('smartFolder.saveChanges') : t('smartFolder.create')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function SmartFolderConditionRow({
+  condition,
+  tags,
+  onChange,
+  onDelete
+}: {
+  condition: SmartFolderCondition;
+  tags: AssetRecord['tags'];
+  onChange: (condition: SmartFolderCondition) => void;
+  onDelete: () => void;
+}): JSX.Element {
+  const { t } = useTranslation('common');
+  const operatorOptions = getSmartOperatorOptions(condition.field);
+
+  const updateField = (field: SmartFolderCondition['field']): void => {
+    onChange({
+      field,
+      operator: getSmartOperator(field),
+      value: defaultSmartValueForField(field, tags[0]?.id)
+    });
+  };
+
+  return (
+    <div className={styles.conditionRow}>
+      <select value={condition.field} onChange={(event) => updateField(event.target.value as SmartFolderCondition['field'])}>
+        {SMART_FOLDER_FIELD_OPTIONS.map((field) => (
+          <option key={field} value={field}>
+            {t(`smartFolder.fields.${field}`)}
+          </option>
+        ))}
+      </select>
+      <select
+        value={condition.operator}
+        onChange={(event) => onChange({ ...condition, operator: event.target.value as SmartFolderCondition['operator'] })}
+      >
+        {operatorOptions.map((operator) => (
+          <option key={operator} value={operator}>
+            {t(`smartFolder.operators.${operator}`)}
+          </option>
+        ))}
+      </select>
+      <SmartFolderValueControl condition={condition} tags={tags} onChange={onChange} />
+      <button type="button" title={t('smartFolder.deleteCondition')} onClick={onDelete}>
+        <Trash2 size={14} />
+      </button>
+    </div>
+  );
+}
+
+function SmartFolderValueControl({
+  condition,
+  tags,
+  onChange
+}: {
+  condition: SmartFolderCondition;
+  tags: AssetRecord['tags'];
+  onChange: (condition: SmartFolderCondition) => void;
+}): JSX.Element {
+  const { t } = useTranslation('common');
+  if (condition.field === 'tag' || condition.field === 'tagExcluded') {
+    return (
+      <select value={String(condition.value)} onChange={(event) => onChange({ ...condition, value: event.target.value })}>
+        <option value="">{t('filter.any')}</option>
+        {tags.map((tag) => (
+          <option key={tag.id} value={tag.id}>
+            {tag.name}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  if (condition.field === 'rating') {
+    return (
+      <select value={String(condition.value)} onChange={(event) => onChange({ ...condition, value: Number(event.target.value) })}>
+        {[0, 1, 2, 3, 4, 5].map((rating) => (
+          <option key={rating} value={rating}>
+            {rating}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  if (condition.field === 'favorite') {
+    return (
+      <select value={String(condition.value)} onChange={(event) => onChange({ ...condition, value: event.target.value === 'true' })}>
+        <option value="true">{t('smartFolder.values.true')}</option>
+        <option value="false">{t('smartFolder.values.false')}</option>
+      </select>
+    );
+  }
+  if (condition.field === 'orientation') {
+    return (
+      <select value={String(condition.value)} onChange={(event) => onChange({ ...condition, value: event.target.value })}>
+        <option value="landscape">{t('smartFolder.values.landscape')}</option>
+        <option value="portrait">{t('smartFolder.values.portrait')}</option>
+        <option value="square">{t('smartFolder.values.square')}</option>
+      </select>
+    );
+  }
+  if (condition.field === 'extension') {
+    return (
+      <input
+        value={String(condition.value)}
+        list="smart-folder-extensions"
+        onChange={(event) => onChange({ ...condition, value: event.target.value.replace(/^\./u, '').toLowerCase() })}
+      />
+    );
+  }
+  if (condition.field === 'mediaType') {
+    return (
+      <select value={String(condition.value)} onChange={(event) => onChange({ ...condition, value: event.target.value })}>
+        <option value="image">image</option>
+      </select>
+    );
+  }
+  if (condition.field === 'sourceUrl') {
+    return <input value={t('smartFolder.values.true')} readOnly />;
+  }
+  if (condition.field === 'width' || condition.field === 'height' || condition.field === 'recentDays') {
+    return (
+      <input
+        type="number"
+        min="0"
+        value={Number(condition.value)}
+        onChange={(event) => onChange({ ...condition, value: Number(event.target.value) })}
+      />
+    );
+  }
+  return <input value={String(condition.value)} onChange={(event) => onChange({ ...condition, value: event.target.value })} />;
 }
 
 function DuplicateResolutionCenter({ groups }: { groups: DuplicateGroup[] }): JSX.Element {
@@ -3161,11 +3931,57 @@ function applyPresetToForm(current: ExportInput, preset: ExportPreset | null): E
   };
 }
 
+function createSmartFolderDraft(folder: SmartFolderRecord | null): { name: string; query: SmartFolderQuery } {
+  return folder
+    ? { name: folder.name, query: normalizeSmartFolderDraft(folder.query) }
+    : { name: '', query: { mode: 'all', conditions: [createDefaultSmartCondition()] } };
+}
+
+function createDefaultSmartCondition(tagId?: string): SmartFolderCondition {
+  return {
+    field: tagId ? 'tag' : 'rating',
+    operator: tagId ? 'contains' : '>=',
+    value: tagId ?? 4
+  };
+}
+
+function normalizeSmartFolderDraft(query: SmartFolderQuery): SmartFolderQuery {
+  return {
+    mode: query.mode === 'any' ? 'any' : 'all',
+    conditions: query.conditions
+      .map((condition) => ({
+        field: condition.field,
+        operator: getSmartOperatorOptions(condition.field).includes(condition.operator)
+          ? condition.operator
+          : getSmartOperator(condition.field),
+        value: normalizeSmartValue(condition.field, String(condition.value))
+      }))
+      .filter((condition) => isSmartConditionValid(condition))
+  };
+}
+
+function isSmartQueryValid(query: SmartFolderQuery): boolean {
+  return query.conditions.length > 0 && query.conditions.every(isSmartConditionValid);
+}
+
+function isSmartConditionValid(condition: SmartFolderCondition): boolean {
+  if (condition.operator === 'exists') {
+    return true;
+  }
+  if (condition.field === 'sourceUrl' || condition.field === 'favorite') {
+    return true;
+  }
+  if (condition.field === 'rating' || condition.field === 'width' || condition.field === 'height' || condition.field === 'recentDays') {
+    return Number.isFinite(Number(condition.value));
+  }
+  return String(condition.value ?? '').trim().length > 0;
+}
+
 function normalizeSmartValue(field: SmartFolderCondition['field'], value: string): SmartFolderCondition['value'] {
   if (field === 'rating' || field === 'width' || field === 'height' || field === 'recentDays') {
     return Number(value) || 0;
   }
-  if (field === 'favorite') {
+  if (field === 'favorite' || field === 'sourceUrl') {
     return value !== 'false';
   }
   return value.trim();
@@ -3184,13 +4000,55 @@ function defaultSmartValue(field: SmartFolderCondition['field']): string {
   if (field === 'extension') {
     return 'png';
   }
+  if (field === 'mediaType') {
+    return 'image';
+  }
   if (field === 'rating') {
     return '4';
   }
   return '';
 }
 
-function formatSmartFolderQuery(query: { conditions: SmartFolderCondition[] }, t: TFunction<'common'>): string {
+function getSmartOperator(field: SmartFolderCondition['field']): SmartFolderCondition['operator'] {
+  if (field === 'rating' || field === 'width' || field === 'height' || field === 'recentDays') {
+    return '>=';
+  }
+  if (field === 'memo' || field === 'tag' || field === 'tagExcluded') {
+    return 'contains';
+  }
+  if (field === 'sourceUrl') {
+    return 'exists';
+  }
+  return '=';
+}
+
+function getSmartOperatorOptions(field: SmartFolderCondition['field']): SmartFolderCondition['operator'][] {
+  switch (field) {
+    case 'tag':
+    case 'tagExcluded':
+      return ['contains', '='];
+    case 'rating':
+    case 'width':
+    case 'height':
+    case 'recentDays':
+      return ['>=', '='];
+    case 'memo':
+      return ['contains', 'exists'];
+    case 'sourceUrl':
+      return ['exists'];
+    default:
+      return ['='];
+  }
+}
+
+function defaultSmartValueForField(field: SmartFolderCondition['field'], tagId?: string): SmartFolderCondition['value'] {
+  if (field === 'tag' || field === 'tagExcluded') {
+    return tagId ?? '';
+  }
+  return normalizeSmartValue(field, defaultSmartValue(field));
+}
+
+function formatSmartFolderQuery(query: SmartFolderQuery, t: TFunction<'common'>): string {
   const firstCondition = query.conditions[0];
   if (!firstCondition) {
     return t('status.none');
@@ -3204,7 +4062,14 @@ function formatSmartFolderQuery(query: { conditions: SmartFolderCondition[] }, t
     return t('smartFolder.conditionRating', { value });
   }
 
-  return t('smartFolder.conditionDefault', { field, operator, value });
+  const first = t('smartFolder.conditionDefault', { field, operator, value });
+  return query.conditions.length > 1
+    ? t('smartFolder.conditionSummary', {
+        first,
+        count: query.conditions.length - 1,
+        mode: t(`smartFolder.modes.${query.mode === 'any' ? 'any' : 'all'}`)
+      })
+    : first;
 }
 
 function localizeSmartValue(value: SmartFolderCondition['value'], t: TFunction<'common'>): string {
@@ -3302,6 +4167,62 @@ function toggleSort(current: AssetSort, field: AssetSort['field']): AssetSort {
   const defaultDirection: AssetSort['direction'] =
     field === 'title' || field === 'extension' || field === 'collectionOrder' ? 'asc' : 'desc';
   return { field, direction: defaultDirection };
+}
+
+function getListColumnDefinition(columnId: ListColumnId): ListColumnDefinition | undefined {
+  return LIST_COLUMN_DEFINITIONS.find((column) => column.id === columnId);
+}
+
+function readListColumnSettings(): ListColumnSettings {
+  const columns = readJsonLocal<Partial<Record<ListColumnId, boolean>>>('listView.columns', {});
+  const columnOrder = readJsonLocal<ListColumnId[]>('listView.columnOrder', []);
+  const columnWidths = readJsonLocal<Partial<Record<ListColumnId, number>>>('listView.columnWidths', {});
+  return normalizeListColumnSettings({
+    columns: { ...DEFAULT_LIST_COLUMN_SETTINGS.columns, ...columns },
+    columnOrder,
+    columnWidths: { ...DEFAULT_LIST_COLUMN_SETTINGS.columnWidths, ...columnWidths }
+  });
+}
+
+function writeListColumnSettings(settings: ListColumnSettings): void {
+  window.localStorage.setItem('listView.columns', JSON.stringify(settings.columns));
+  window.localStorage.setItem('listView.columnOrder', JSON.stringify(settings.columnOrder));
+  window.localStorage.setItem('listView.columnWidths', JSON.stringify(settings.columnWidths));
+}
+
+function normalizeListColumnSettings(settings: ListColumnSettings): ListColumnSettings {
+  const columnOrder = [
+    ...settings.columnOrder.filter((columnId): columnId is ListColumnId => LIST_COLUMN_IDS.includes(columnId)),
+    ...LIST_COLUMN_IDS.filter((columnId) => !settings.columnOrder.includes(columnId))
+  ];
+  const columns = { ...DEFAULT_LIST_COLUMN_SETTINGS.columns, ...settings.columns };
+  if (!Object.values(columns).some(Boolean)) {
+    columns.name = true;
+  }
+  const columnWidths = { ...DEFAULT_LIST_COLUMN_SETTINGS.columnWidths };
+  for (const column of LIST_COLUMN_DEFINITIONS) {
+    columnWidths[column.id] = clampNumber(settings.columnWidths[column.id] ?? column.defaultWidth, column.minWidth, column.maxWidth);
+  }
+  return { columns, columnOrder, columnWidths };
+}
+
+function readJsonLocal<T>(key: string, fallback: T): T {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function moveArrayItem<T>(items: T[], fromIndex: number, toIndex: number): T[] {
+  if (fromIndex === toIndex) {
+    return [...items];
+  }
+  const next = [...items];
+  const [item] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, item);
+  return next;
 }
 
 function parseCsv(value: string): string[] {

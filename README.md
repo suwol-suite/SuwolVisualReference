@@ -11,8 +11,9 @@ It helps you build portable local libraries of image and UI references, add prac
 - Import individual files or recursive folders.
 - Keep thumbnails, previews, tags, memo, rating, favorite state, source URL, collections, and smart folders.
 - Search, sort, filter, paginate, and incrementally load large libraries.
-- Switch between thumbnail grid and dense list views.
-- Manage tags and collections, including collection colors and cover images.
+- Switch between thumbnail grid and dense configurable list views.
+- Manage tags and collections, including collection colors, cover images, and manual collection order.
+- Build smart folders with editable multi-condition rules and result count previews.
 - Use desktop-style selection, range selection, drag-box selection, and multi-selection batch actions.
 - Review SHA-256 duplicates, merge metadata, ignore groups, or move redundant copies to trash.
 - Restore from trash or permanently delete library-internal copies.

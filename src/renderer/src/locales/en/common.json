@@ -116,12 +116,14 @@
       "pixelCount-asc": "Smallest resolution",
       "rating-desc": "Highest rating",
       "rating-asc": "Lowest rating",
-      "extension-asc": "Extension A-Z"
+      "extension-asc": "Extension A-Z",
+      "collectionOrder-asc": "Manual collection order"
     }
   },
   "list": {
     "moreTags": "+{{count}}",
     "columns": {
+      "order": "Order",
       "preview": "Preview",
       "name": "Name",
       "extension": "Ext",
@@ -134,7 +136,26 @@
       "collections": "Collections",
       "imported": "Imported",
       "source": "Source path"
+    },
+    "settings": {
+      "open": "Columns",
+      "title": "List Columns",
+      "subtitle": "Choose visible columns, column order, and saved widths.",
+      "width": "Width",
+      "resizeColumn": "Resize column",
+      "moveUp": "Move column up",
+      "moveDown": "Move column down",
+      "reset": "Restore defaults"
     }
+  },
+  "collectionOrder": {
+    "dragHint": "Drag the handle to reorder this collection.",
+    "partialPageHint": "Manual reorder applies to currently loaded rows first; load more before arranging hidden rows.",
+    "dragHandle": "Drag to reorder",
+    "moveTop": "Move to top",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "moveBottom": "Move to bottom"
   },
   "layout": {
     "resizeLeft": "Drag to resize the sidebar. Double-click to reset.",
@@ -230,6 +251,7 @@
       "rating": "Rating",
       "favorite": "Favorite",
       "tag": "Tag",
+      "tagExcluded": "Exclude tag",
       "extension": "Extension",
       "orientation": "Orientation",
       "recentDays": "Recent days",
@@ -252,9 +274,29 @@
       "portrait": "Portrait",
       "square": "Square"
     },
+    "modes": {
+      "all": "All conditions",
+      "any": "Any condition"
+    },
+    "managerOpen": "Open smart folder manager",
+    "managerTitle": "Smart Folder Manager",
+    "managerSubtitle": "Create, edit, validate, and preview smart folder conditions.",
+    "newFolder": "New smart folder",
+    "name": "Name",
+    "mode": "Match mode",
+    "addCondition": "Add condition",
+    "deleteCondition": "Delete condition",
+    "noConditions": "No conditions yet",
+    "conditionError": "Fix empty or invalid condition values before saving.",
+    "previewCount": "Preview: {{count}} assets",
+    "showResults": "Show results",
+    "saveChanges": "Save changes",
+    "create": "Create smart folder",
+    "confirmDelete": "Delete the {{name}} smart folder?",
     "valuePlaceholder": "Value",
     "conditionRating": "Rating {{value}} or higher",
-    "conditionDefault": "{{field}} {{operator}} {{value}}"
+    "conditionDefault": "{{field}} {{operator}} {{value}}",
+    "conditionSummary": "{{first}} + {{count}} more, {{mode}}"
   },
   "inspector": {
     "noSelection": "Select an asset",

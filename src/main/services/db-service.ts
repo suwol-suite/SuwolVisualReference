@@ -14,6 +14,8 @@ import type {
   AssetBatchTagInput,
   AssetRecord,
   AssetUpdateInput,
+  CollectionAssetOrderInput,
+  CollectionAssetOrderResult,
   CollectionRecord,
   DuplicateGroup,
   DuplicateGroupQuery,
@@ -26,6 +28,7 @@ import type {
   LibrarySummary,
   SmartFolderQuery,
   SmartFolderRecord,
+  SmartFolderUpdateInput,
   TagMergeInput,
   TagRecord
 } from '@shared/types';
@@ -1030,6 +1033,68 @@ export class LibraryDatabase {
     this.db.prepare('DELETE FROM collections WHERE id = ? AND (library_id IS NULL OR library_id = ?)').run(id, this.manifest.libraryId);
   }
 
+  reorderCollectionAssets(input: CollectionAssetOrderInput): CollectionAssetOrderResult {
+    const requestedIds = uniqueStrings(input.assetIds);
+    const result: CollectionAssetOrderResult = {
+      collectionId: input.collectionId,
+      updatedCount: 0,
+      items: [],
+      warnings: [],
+      failures: []
+    };
+    const collection = this.db
+      .prepare('SELECT id FROM collections WHERE id = ? AND (library_id IS NULL OR library_id = ?)')
+      .get(input.collectionId, this.manifest.libraryId) as { id: string } | undefined;
+    if (!collection) {
+      result.failures.push({
+        assetId: null,
+        target: input.collectionId,
+        code: 'COLLECTION_NOT_FOUND',
+        message: 'Collection was not found.'
+      });
+      return result;
+    }
+
+    const existingIds = this.db
+      .prepare(
+        `SELECT ca.asset_id AS id
+         FROM collection_assets ca
+         JOIN assets a ON a.id = ca.asset_id
+         WHERE ca.collection_id = ?
+           AND a.permanently_deleted_at IS NULL
+         ORDER BY ca.sort_order ASC, ca.created_at ASC, ca.asset_id ASC`
+      )
+      .all(input.collectionId)
+      .map((row) => (row as { id: string }).id);
+    const existingSet = new Set(existingIds);
+    const orderedRequestedIds = requestedIds.filter((assetId) => existingSet.has(assetId));
+    requestedIds
+      .filter((assetId) => !existingSet.has(assetId))
+      .forEach((assetId) => {
+        result.warnings.push({
+          assetId,
+          code: 'ASSET_NOT_IN_COLLECTION',
+          message: 'Asset is not in this collection.'
+        });
+      });
+
+    const nextIds = [...orderedRequestedIds, ...existingIds.filter((assetId) => !orderedRequestedIds.includes(assetId))];
+    const update = this.db.prepare(
+      `UPDATE collection_assets
+       SET sort_order = ?
+       WHERE collection_id = ? AND asset_id = ?`
+    );
+    const transaction = this.db.transaction(() => {
+      nextIds.forEach((assetId, index) => {
+        const info = update.run(index + 1, input.collectionId, assetId);
+        result.updatedCount += info.changes;
+      });
+    });
+    transaction();
+    result.items = nextIds;
+    return result;
+  }
+
   listDuplicateGroups(query: DuplicateGroupQuery = {}): DuplicateGroup[] {
     const statuses = query.statuses ?? [
       'unresolved',
@@ -1374,12 +1439,13 @@ export class LibraryDatabase {
   createSmartFolder(name: string, query: SmartFolderQuery): SmartFolderRecord {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
+    const normalizedQuery = normalizeSmartFolderQuery(query);
     this.db
       .prepare(
         `INSERT INTO smart_folders (id, library_id, name, query_json, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .run(id, this.manifest.libraryId, name.trim(), JSON.stringify(query), now, now);
+      .run(id, this.manifest.libraryId, name.trim(), JSON.stringify(normalizedQuery), now, now);
 
     const folder = this.getSmartFolder(id);
     if (!folder) {
@@ -1388,8 +1454,46 @@ export class LibraryDatabase {
     return folder;
   }
 
+  updateSmartFolder(input: SmartFolderUpdateInput): SmartFolderRecord {
+    const updates: string[] = [];
+    const params: Record<string, unknown> = {
+      id: input.id,
+      libraryId: this.manifest.libraryId,
+      updatedAt: new Date().toISOString()
+    };
+    if (input.name !== undefined) {
+      updates.push('name = @name');
+      params.name = input.name.trim();
+    }
+    if (input.query !== undefined) {
+      updates.push('query_json = @queryJson');
+      params.queryJson = JSON.stringify(normalizeSmartFolderQuery(input.query));
+    }
+    updates.push('updated_at = @updatedAt');
+    this.db
+      .prepare(`UPDATE smart_folders SET ${updates.join(', ')} WHERE id = @id AND (library_id IS NULL OR library_id = @libraryId)`)
+      .run(params);
+    const folder = this.getSmartFolder(input.id);
+    if (!folder) {
+      throw new Error('Smart folder not found.');
+    }
+    return folder;
+  }
+
+  previewSmartFolderCount(query: SmartFolderQuery): number {
+    const where = ['a.library_id = @libraryId', 'a.is_deleted = 0', 'a.permanently_deleted_at IS NULL'];
+    const params: Record<string, unknown> = {
+      libraryId: this.manifest.libraryId
+    };
+    this.appendSmartFolderWhere(where, params, normalizeSmartFolderQuery(query));
+    const row = this.db
+      .prepare(`SELECT COUNT(*) AS count FROM assets a WHERE ${where.join(' AND ')}`)
+      .get(params) as { count: number };
+    return row.count;
+  }
+
   deleteSmartFolder(id: string): void {
-    this.db.prepare('DELETE FROM smart_folders WHERE id = ? AND library_id = ?').run(id, this.manifest.libraryId);
+    this.db.prepare('DELETE FROM smart_folders WHERE id = ? AND (library_id IS NULL OR library_id = ?)').run(id, this.manifest.libraryId);
   }
 
   createExportJob(name: string, outputPath: string, assetCount: number, status = 'completed'): void {
@@ -1493,25 +1597,31 @@ export class LibraryDatabase {
     query: SmartFolderQuery
   ): void {
     const clauses: string[] = [];
-    query.conditions.forEach((condition, index) => {
+    normalizeSmartFolderQuery(query).conditions.forEach((condition, index) => {
       const key = `smart${index}`;
       const operator = condition.operator;
 
       switch (condition.field) {
         case 'tag':
+        case 'tagExcluded':
           if (typeof condition.value === 'string' && condition.value.trim()) {
-            params[key] = operator === 'contains' ? `%${condition.value.trim().toLowerCase()}%` : condition.value.trim();
-            clauses.push(`EXISTS (
+            params[key] = condition.value.trim();
+            params[`${key}Name`] = operator === 'contains' ? `%${condition.value.trim().toLowerCase()}%` : condition.value.trim().toLowerCase();
+            const tagClause = `EXISTS (
               SELECT 1
               FROM asset_tags sfat
               JOIN tags sft ON sft.id = sfat.tag_id
               WHERE sfat.asset_id = a.id
-                AND ${
-                  operator === 'contains'
-                    ? `LOWER(sft.name) LIKE @${key}`
-                    : `sft.name = @${key}`
-                }
-            )`);
+                AND (
+                  sfat.tag_id = @${key}
+                  OR ${
+                    operator === 'contains'
+                      ? `LOWER(sft.name) LIKE @${key}Name`
+                      : `LOWER(sft.name) = @${key}Name`
+                  }
+                )
+            )`;
+            clauses.push(condition.field === 'tagExcluded' ? `NOT ${tagClause}` : tagClause);
           }
           break;
         case 'rating':
@@ -1844,10 +1954,69 @@ function mapSmartFolder(row: SmartFolderRow, fallbackLibraryId: string): SmartFo
     id: row.id,
     libraryId: row.library_id ?? fallbackLibraryId,
     name: row.name,
-    query: parseJsonObject<SmartFolderQuery>(row.query_json, { mode: 'all', conditions: [] }),
+    query: normalizeSmartFolderQuery(parseJsonObject<SmartFolderQuery>(row.query_json, { mode: 'all', conditions: [] })),
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
+}
+
+function normalizeSmartFolderQuery(query: SmartFolderQuery): SmartFolderQuery {
+  const mode = query.mode === 'any' ? 'any' : 'all';
+  const conditions = Array.isArray(query.conditions)
+    ? query.conditions.map(normalizeSmartFolderCondition).filter((condition): condition is SmartFolderQuery['conditions'][number] => Boolean(condition))
+    : [];
+  return { mode, conditions };
+}
+
+function normalizeSmartFolderCondition(
+  condition: SmartFolderQuery['conditions'][number]
+): SmartFolderQuery['conditions'][number] | null {
+  if (!condition || typeof condition !== 'object') {
+    return null;
+  }
+
+  switch (condition.field) {
+    case 'tag': {
+      const value = String(condition.value ?? '').trim();
+      return value ? { field: 'tag', operator: condition.operator === '=' ? '=' : 'contains', value } : null;
+    }
+    case 'tagExcluded': {
+      const value = String(condition.value ?? '').trim();
+      return value ? { field: 'tagExcluded', operator: condition.operator === '=' ? '=' : 'contains', value } : null;
+    }
+    case 'rating':
+    case 'width':
+    case 'height': {
+      const value = Number(condition.value);
+      return Number.isFinite(value) ? { field: condition.field, operator: condition.operator === '=' ? '=' : '>=', value } : null;
+    }
+    case 'favorite':
+      return { field: 'favorite', operator: '=', value: Boolean(condition.value) };
+    case 'recentDays': {
+      const value = Math.max(1, Math.floor(Number(condition.value) || 1));
+      return { field: 'recentDays', operator: '>=', value };
+    }
+    case 'mediaType':
+    case 'extension': {
+      const value = String(condition.value ?? '').trim();
+      return value ? { field: condition.field, operator: '=', value } : null;
+    }
+    case 'orientation':
+      return ['landscape', 'portrait', 'square'].includes(String(condition.value))
+        ? { field: 'orientation', operator: '=', value: String(condition.value) }
+        : null;
+    case 'memo': {
+      if (condition.operator === 'exists') {
+        return { field: 'memo', operator: 'exists', value: true };
+      }
+      const value = String(condition.value ?? '').trim();
+      return value ? { field: 'memo', operator: 'contains', value } : null;
+    }
+    case 'sourceUrl':
+      return { field: 'sourceUrl', operator: 'exists', value: true };
+    default:
+      return null;
+  }
 }
 
 function parseJsonObject<T>(value: string, fallback: T): T {

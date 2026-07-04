@@ -11,6 +11,8 @@ import type {
   AssetBatchRatingInput,
   AssetBatchTagInput,
   AssetUpdateInput,
+  CollectionAssetOrderInput,
+  CollectionAssetOrderResult,
   CollectionCreateAndAddAssetsInput,
   CollectionCreateAndAddAssetsResult,
   DuplicateGroupQuery,
@@ -20,6 +22,7 @@ import type {
   ImportFilesInput,
   ImportFolderInput,
   SmartFolderQuery,
+  SmartFolderUpdateInput,
   TagMergeInput
 } from '@shared/types';
 import { AssetImportService } from './services/asset-import-service';
@@ -318,6 +321,9 @@ function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.collectionsDelete, (_event, id: string) => {
     libraryService.requireDb().deleteCollection(id);
   });
+  ipcMain.handle(IPC_CHANNELS.collectionsReorderAssets, (_event, input: CollectionAssetOrderInput): CollectionAssetOrderResult => {
+    return libraryService.requireDb().reorderCollectionAssets(input);
+  });
   ipcMain.handle(IPC_CHANNELS.collectionsCreateAndAddAssets, (_event, input: CollectionCreateAndAddAssetsInput) => {
     const db = libraryService.requireDb();
     const collection = db.createCollection(input.name, input.description, input.color);
@@ -337,8 +343,14 @@ function registerIpcHandlers(): void {
       libraryService.requireDb().createSmartFolder(input.name, input.query)
     );
   });
+  ipcMain.handle(IPC_CHANNELS.smartFoldersUpdate, (_event, input: SmartFolderUpdateInput) => {
+    return withErrorCode('SMART_FOLDER_SAVE_FAILED', () => libraryService.requireDb().updateSmartFolder(input));
+  });
   ipcMain.handle(IPC_CHANNELS.smartFoldersDelete, (_event, id: string) => {
     libraryService.requireDb().deleteSmartFolder(id);
+  });
+  ipcMain.handle(IPC_CHANNELS.smartFoldersPreview, (_event, query: SmartFolderQuery) => {
+    return libraryService.requireDb().previewSmartFolderCount(query);
   });
 
   ipcMain.handle(IPC_CHANNELS.exportPresetsList, (_event, locale?: LocaleCode) => loadExportPresets(locale));

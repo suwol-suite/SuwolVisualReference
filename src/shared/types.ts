@@ -74,6 +74,19 @@ export type CollectionRecord = {
   updatedAt: string;
 };
 
+export type CollectionAssetOrderInput = {
+  collectionId: string;
+  assetIds: string[];
+};
+
+export type CollectionAssetOrderResult = {
+  collectionId: string;
+  updatedCount: number;
+  items: string[];
+  warnings: BatchOperationWarning[];
+  failures: BatchOperationFailure[];
+};
+
 export type AssetColor = {
   id: string;
   assetId: string;
@@ -276,6 +289,7 @@ export type ImportBatchRecord = {
 export type SmartFolderCondition = {
   field:
     | 'tag'
+    | 'tagExcluded'
     | 'rating'
     | 'favorite'
     | 'recentDays'
@@ -302,6 +316,12 @@ export type SmartFolderRecord = {
   query: SmartFolderQuery;
   createdAt: string;
   updatedAt: string;
+};
+
+export type SmartFolderUpdateInput = {
+  id: string;
+  name?: string;
+  query?: SmartFolderQuery;
 };
 
 export type DuplicateGroup = {
