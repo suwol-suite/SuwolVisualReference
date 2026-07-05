@@ -76,7 +76,7 @@ Database paths for asset files are library-relative paths. Main-process helpers 
 2. Main process resolves assets from SQLite.
 3. Originals are copied to `exports/<export-name>/refs/`.
 4. If no custom template is selected, `instruction.md` is generated using the locale-aware built-in template lookup. `config/export-templates/codex.<locale>.json` is preferred, with `config/export-templates/codex.json` as fallback.
-5. If a custom template is selected, the main process renders DB-backed template sections with supported placeholders such as `{{goal}}`, `{{references}}`, `{{assetList}}`, `{{assetNotes}}`, `{{tags}}`, `{{colors}}`, `{{commonFeatures}}`, `{{applyInstructions}}`, `{{forbiddenRules}}`, and `{{generatedAt}}`. Unknown placeholders are replaced with an empty string and returned as warnings.
+5. If a custom template is selected, the main process renders DB-backed template sections with supported placeholders such as `{{title}}`, `{{goal}}`, `{{references}}`, `{{assetList}}`, `{{assetNotes}}`, `{{tags}}`, `{{colors}}`, `{{commonFeatures}}`, `{{applyInstructions}}`, `{{forbiddenRules}}`, `{{generatedAt}}`, `{{collectionName}}`, `{{assetCount}}`, `{{sourceUrls}}`, and `{{fileTable}}`. Unknown placeholders are replaced with an empty string and returned as warnings.
 6. Export preset defaults are read from `config/export-presets.<locale>.json` when a locale is provided, with `config/export-presets.json` as fallback.
 7. Markdown references use relative `./refs/...` paths.
 8. The export job is recorded in SQLite.
@@ -101,7 +101,7 @@ The query accepts view/filter fields for library, favorites, trash, duplicates, 
 
 Structured sorting supports imported date, title, file size, pixel count, rating, extension, and collection order. Legacy string sort values are still accepted at the DB boundary for compatibility.
 
-Advanced filters support media type, extension, palette color, favorite-only, minimum rating, included tags, excluded tags, orientation/aspect, minimum width, minimum height, memo presence, source URL presence, recency, duplicate-only, and deleted-only conditions. SQL column and order clauses are whitelisted; renderer input is normalized before it reaches IPC. Palette color search uses stored RGB channels and a bounded Euclidean distance comparison in SQL.
+Advanced filters support media type, extension, palette color, favorite-only, minimum rating, included tags, excluded tags, orientation/aspect, minimum width, minimum height, memo presence, source URL presence, recency, duplicate-only, and deleted-only conditions. SQL column and order clauses are whitelisted; renderer input is normalized before it reaches IPC. Palette color search uses stored RGB channels and a bounded Euclidean distance comparison in SQL. The renderer exposes color tolerance and minimum palette-share controls and clears selection when the color query changes.
 
 The app shell uses resizable sidebar/center/inspector tracks with `overflow: hidden`; the center grid, sidebar lists, and inspector own their scroll areas. Sidebar and inspector widths are saved in `localStorage`, and double-clicking a splitter resets the width. This prevents parent flex/grid `min-height` issues from blocking wheel and trackpad scroll.
 
@@ -147,7 +147,7 @@ The smart folder manager edits the existing `query_json` shape: `{ mode, conditi
 
 The toolbar filter icon opens a small anchored popover for library, favorites, trash, duplicate review, apply, and clear-all actions. The popover is kept outside text-selection behavior, can be closed with Escape or outside click, and avoids the toolbar icon-button styles that caused vertical button labels. The grid/list icon now switches the current asset presentation immediately while preserving the loaded query window and selection model.
 
-Asset tiles show an explicit selected badge at the card top-right plus selected border/background styling. Double-clicking a tile, pressing Enter/Space on a focused tile, or clicking the inspector preview opens the large image viewer. The viewer supports previous/next navigation, mouse-wheel zoom, drag pan, reset-to-fit, and Escape close. Image drag uses `draggable={false}` and window-level mouseup handling so pan ends even when the pointer leaves the image.
+Asset tiles show an explicit selected badge at the card top-right plus selected border/background styling. Double-clicking a tile, pressing Enter/Space on a focused tile, or clicking the inspector preview opens the large media viewer. The viewer supports previous/next navigation, mouse-wheel zoom, drag pan, reset-to-fit, and Escape close. GIFs are paused by default and only play in the viewer when requested. SVG originals are never inlined; the viewer uses raster previews or a placeholder. Video files remain management previews only, showing generated thumbnails when available and an external-FFmpeg placeholder otherwise. Image drag uses `draggable={false}` and window-level mouseup handling so pan ends even when the pointer leaves the image.
 
 Permanent delete is guarded in both UI and store state. It is only available for assets currently shown as deleted/trash assets and removes library-internal originals, thumbnails, and previews; source folders are not modified.
 

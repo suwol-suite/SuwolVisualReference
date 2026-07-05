@@ -27,7 +27,7 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 
 - [ ] Import a single image file.
 - [ ] Import multiple image files.
-- [ ] Import GIF and confirm the badge appears and the viewer plays the original GIF.
+- [ ] Import GIF and confirm the badge appears, grid/list stay static, and the viewer play/pause button toggles the animated GIF.
 - [ ] Import SVG and confirm the grid/viewer use a raster preview, not inline SVG.
 - [ ] Import an MP4/WebM/MOV with no ffmpeg configured and confirm import succeeds with a preview warning.
 - [ ] Import a nested folder.
@@ -43,7 +43,7 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Open list column settings, hide/show columns, move a column, resize a column, restore defaults, restart, and confirm settings persist.
 - [ ] Sort by imported date, name, file size, resolution, rating, and extension.
 - [ ] Use advanced filters for extension, rating, included/excluded tag, aspect, dimensions, memo, source URL, recency, favorites, duplicates, and trash/deleted state.
-- [ ] Click a palette swatch and confirm the color filter applies; adjust color tolerance and clear it.
+- [ ] Click a palette swatch and confirm the color filter applies; adjust color tolerance and minimum share, verify the filter chip, and clear it.
 - [ ] Switch between library, favorites, trash, duplicates, tag, collection, and smart folder views.
 - [ ] Open the filter popover, use Apply and Clear, close it with ESC, and close it by clicking outside.
 
@@ -61,6 +61,7 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Open the large image viewer with Enter/Space.
 - [ ] Zoom, pan, reset, previous, next, and ESC close in the viewer.
 - [ ] Confirm failed preview loading shows a placeholder.
+- [ ] Press F1 or `?` outside text inputs and confirm the shortcut help opens.
 
 ## Metadata
 
@@ -89,8 +90,9 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 
 - [ ] Export selected assets to Codex Markdown.
 - [ ] Export a collection to Codex Markdown.
-- [ ] Open the export template manager, duplicate a built-in template, edit a custom section, preview it, save it, and export with it.
+- [ ] Open the export template manager, duplicate a built-in template, edit defaults and custom sections, reorder sections, insert placeholders, preview it, save it, and export with it.
 - [ ] Confirm exported references use relative paths.
+- [ ] Confirm unknown placeholders appear as warnings but do not crash export preview.
 
 ## Localization
 

@@ -52,5 +52,6 @@ export const IPC_CHANNELS = {
   exportTemplatesDelete: 'export-templates:delete',
   exportTemplatesPreview: 'export-templates:preview',
   exportCreate: 'export:create',
-  shellOpenPath: 'shell:open-path'
+  shellOpenPath: 'shell:open-path',
+  shellOpenExternal: 'shell:open-external'
 } as const;

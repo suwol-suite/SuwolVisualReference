@@ -35,5 +35,6 @@ execFileSync(
 );
 
 execFileSync(process.execPath, [path.join(outDir, 'scripts', 'selection-utils.test.js')], { stdio: 'inherit' });
+execFileSync(process.execPath, [path.join(repoRoot, 'scripts', 'v02-feature-regression.test.mjs')], { stdio: 'inherit' });
 console.log('[selection-utils] temporary build removed');
 fs.rmSync(outDir, { recursive: true, force: true });

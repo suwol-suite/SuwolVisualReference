@@ -39,10 +39,14 @@ import {
   GripVertical,
   Grid2X2,
   Heart,
+  HelpCircle,
   Image,
+  Keyboard,
   Layers,
   List,
   Maximize2,
+  Pause,
+  Play,
   Plus,
   RotateCcw,
   Search,
@@ -73,7 +77,7 @@ import type {
 } from '@shared/types';
 import { SUPPORTED_LANGUAGES } from '@shared/i18n/languages';
 import type { LanguagePreference } from '@shared/i18n/types';
-import brandIconUrl from '@brand/icon.svg';
+import brandIconUrl from '@brand/icon-256.png';
 import { selectActiveAsset, useRefForgeStore } from './store';
 import {
   getClientSelectionRect,
@@ -86,6 +90,27 @@ import {
 import styles from './App.module.css';
 
 const EMPTY_FILTERS: AssetFilters = {};
+const DEFAULT_COLOR_TOLERANCE = 48;
+const DEFAULT_COLOR_MIN_RATIO = 0.02;
+const GITHUB_REPOSITORY_URL = 'https://github.com/suwol-suite/SuwolVisualReference';
+const THIRD_PARTY_NOTICES_PATH = 'THIRD_PARTY_NOTICES.md';
+const EXPORT_PLACEHOLDERS = [
+  'title',
+  'goal',
+  'references',
+  'assetList',
+  'assetNotes',
+  'tags',
+  'colors',
+  'commonFeatures',
+  'applyInstructions',
+  'forbiddenRules',
+  'generatedAt',
+  'collectionName',
+  'assetCount',
+  'sourceUrls',
+  'fileTable'
+];
 const ASSET_SORT_OPTIONS: Array<{ id: string; sort: AssetSort }> = [
   { id: 'importedAt-desc', sort: { field: 'importedAt', direction: 'desc' } },
   { id: 'importedAt-asc', sort: { field: 'importedAt', direction: 'asc' } },
@@ -789,6 +814,7 @@ function Toolbar(): JSX.Element {
   const [searchDraft, setSearchDraft] = useState(search);
   const [exportOpen, setExportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [recentOpen, setRecentOpen] = useState(false);
   const [filterPopover, setFilterPopover] = useState<{ top: number; left: number } | null>(null);
 
@@ -804,6 +830,20 @@ function Toolbar(): JSX.Element {
     }, 260);
     return () => window.clearTimeout(timer);
   }, [search, searchDraft, setSearch]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (isEditableElement(event.target)) {
+        return;
+      }
+      if (event.key === 'F1' || (event.key === '?' && !event.ctrlKey && !event.metaKey && !event.altKey)) {
+        event.preventDefault();
+        setHelpOpen(true);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <header className={styles.toolbar}>
@@ -914,9 +954,13 @@ function Toolbar(): JSX.Element {
         <button title={t('toolbar.settings')} onClick={() => setSettingsOpen(true)}>
           <Settings size={17} />
         </button>
+        <button title={t('toolbar.help')} onClick={() => setHelpOpen(true)}>
+          <HelpCircle size={17} />
+        </button>
       </div>
       {exportOpen ? <ExportDialog onClose={() => setExportOpen(false)} /> : null}
       {settingsOpen ? <SettingsDialog onClose={() => setSettingsOpen(false)} /> : null}
+      {helpOpen ? <HelpDialog onClose={() => setHelpOpen(false)} /> : null}
       {recentOpen ? <RecentLibrariesDialog onClose={() => setRecentOpen(false)} /> : null}
       {filterPopover ? <FilterPopover position={filterPopover} onClose={() => setFilterPopover(null)} /> : null}
     </header>
@@ -938,6 +982,7 @@ function GridStatusBar(): JSX.Element {
   const duplicateOnly = useRefForgeStore((state) => state.duplicateOnly);
   const assetSort = useRefForgeStore((state) => state.assetSort);
   const assetFilters = useRefForgeStore((state) => state.assetFilters);
+  const setAssetFilters = useRefForgeStore((state) => state.setAssetFilters);
   const viewName = getViewName(
     {
       duplicateOnly,
@@ -964,6 +1009,22 @@ function GridStatusBar(): JSX.Element {
       {search.trim() ? <span>{t('assetGrid.searchApplied', { search })}</span> : null}
       <span>{t('sort.current', { sort: t(`sort.options.${serializeAssetSort(assetSort)}`) })}</span>
       <span>{t('filter.activeSummary', { count: countAssetFilters(assetFilters) })}</span>
+      {assetFilters.color ? (
+        <button
+          type="button"
+          className={styles.colorFilterChip}
+          title={t('filter.clearColor')}
+          onClick={() => void setAssetFilters({ ...assetFilters, color: null })}
+        >
+          <span style={{ background: assetFilters.color.hex }} />
+          {t('filter.colorChip', {
+            color: assetFilters.color.hex.toUpperCase(),
+            tolerance: assetFilters.color.tolerance,
+            minRatio: formatPercent(assetFilters.color.minRatio ?? DEFAULT_COLOR_MIN_RATIO)
+          })}
+          <X size={12} />
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -1074,8 +1135,8 @@ function FilterPopover({
                     ...current,
                     color: {
                       hex: event.target.value,
-                      tolerance: current.color?.tolerance ?? 56,
-                      minRatio: current.color?.minRatio ?? 0.01
+                      tolerance: current.color?.tolerance ?? DEFAULT_COLOR_TOLERANCE,
+                      minRatio: current.color?.minRatio ?? DEFAULT_COLOR_MIN_RATIO
                     }
                   }))
                 }
@@ -1089,8 +1150,8 @@ function FilterPopover({
                     color: event.target.value.trim()
                       ? {
                           hex: event.target.value.trim(),
-                          tolerance: current.color?.tolerance ?? 56,
-                          minRatio: current.color?.minRatio ?? 0.01
+                          tolerance: current.color?.tolerance ?? DEFAULT_COLOR_TOLERANCE,
+                          minRatio: current.color?.minRatio ?? DEFAULT_COLOR_MIN_RATIO
                         }
                       : null
                   }))
@@ -1106,18 +1167,35 @@ function FilterPopover({
             </span>
           </label>
           <label>
-            {t('filter.colorTolerance', { value: colorDraft?.tolerance ?? 56 })}
+            {t('filter.colorTolerance', { value: colorDraft?.tolerance ?? DEFAULT_COLOR_TOLERANCE })}
             <input
               type="range"
               min="8"
               max="160"
               step="4"
-              value={colorDraft?.tolerance ?? 56}
+              value={colorDraft?.tolerance ?? DEFAULT_COLOR_TOLERANCE}
               disabled={!colorDraft}
               onChange={(event) =>
                 setFilterDraft((current) => ({
                   ...current,
                   color: current.color ? { ...current.color, tolerance: Number(event.target.value) } : current.color
+                }))
+              }
+            />
+          </label>
+          <label>
+            {t('filter.colorMinRatio', { value: formatPercent(colorDraft?.minRatio ?? DEFAULT_COLOR_MIN_RATIO) })}
+            <input
+              type="range"
+              min="0"
+              max="0.12"
+              step="0.005"
+              value={colorDraft?.minRatio ?? DEFAULT_COLOR_MIN_RATIO}
+              disabled={!colorDraft}
+              onChange={(event) =>
+                setFilterDraft((current) => ({
+                  ...current,
+                  color: current.color ? { ...current.color, minRatio: Number(event.target.value) } : current.color
                 }))
               }
             />
@@ -1776,6 +1854,7 @@ function ListColumnValue({
           <strong>{asset.title}</strong>
           <small>{asset.originalFileName}</small>
           <AssetMediaBadges asset={asset} compact />
+          <AssetPaletteSwatches asset={asset} limit={4} />
         </span>
       );
     case 'extension':
@@ -1978,6 +2057,7 @@ const AssetTile = memo(function AssetTile({
           </span>
         ) : null}
         <AssetMediaBadges asset={asset} />
+        <AssetPaletteSwatches asset={asset} limit={4} />
       </span>
       {showFileNames ? <span className={styles.assetTitle}>{asset.title}</span> : null}
       <span className={styles.assetMeta}>
@@ -1990,7 +2070,7 @@ const AssetTile = memo(function AssetTile({
 
 function AssetMediaBadges({ asset, compact = false }: { asset: AssetRecord; compact?: boolean }): JSX.Element | null {
   const { t } = useTranslation('common');
-  const badges = getAssetMediaBadges(asset, t);
+  const badges = getAssetMediaBadges(asset, t, compact ? 3 : 2);
   if (badges.length === 0) {
     return null;
   }
@@ -1998,6 +2078,42 @@ function AssetMediaBadges({ asset, compact = false }: { asset: AssetRecord; comp
     <span className={compact ? styles.mediaBadgesCompact : styles.mediaBadges}>
       {badges.map((badge) => (
         <span key={badge}>{badge}</span>
+      ))}
+    </span>
+  );
+}
+
+function AssetPaletteSwatches({ asset, limit = 4 }: { asset: AssetRecord; limit?: number }): JSX.Element | null {
+  const { t } = useTranslation('common');
+  const assetFilters = useRefForgeStore((state) => state.assetFilters);
+  const setAssetFilters = useRefForgeStore((state) => state.setAssetFilters);
+  const colors = asset.colors.slice(0, limit);
+  if (colors.length === 0) {
+    return null;
+  }
+
+  return (
+    <span className={styles.assetPaletteSwatches}>
+      {colors.map((color) => (
+        <span
+          key={color.id}
+          className={styles.assetPaletteSwatch}
+          title={t('filter.applyColor', { color: color.color })}
+          aria-label={t('filter.applyColor', { color: color.color })}
+          style={{ background: color.color }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void setAssetFilters({
+              ...assetFilters,
+              color: {
+                hex: color.color,
+                tolerance: assetFilters.color?.tolerance ?? DEFAULT_COLOR_TOLERANCE,
+                minRatio: assetFilters.color?.minRatio ?? DEFAULT_COLOR_MIN_RATIO
+              }
+            });
+          }}
+        />
       ))}
     </span>
   );
@@ -3099,7 +3215,11 @@ function Inspector(): JSX.Element {
               onClick={() =>
                 void setAssetFilters({
                   ...assetFilters,
-                  color: { hex: color.color, tolerance: assetFilters.color?.tolerance ?? 56, minRatio: 0.01 }
+                  color: {
+                    hex: color.color,
+                    tolerance: assetFilters.color?.tolerance ?? DEFAULT_COLOR_TOLERANCE,
+                    minRatio: assetFilters.color?.minRatio ?? DEFAULT_COLOR_MIN_RATIO
+                  }
                 })
               }
             />
@@ -3393,12 +3513,14 @@ function ImageViewer(): JSX.Element | null {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState<{ x: number; y: number; originX: number; originY: number } | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
+  const [gifPlaying, setGifPlaying] = useState(false);
 
   useEffect(() => {
     setScale(1);
     setOffset({ x: 0, y: 0 });
     setDragStart(null);
     setImageFailed(false);
+    setGifPlaying(false);
   }, [asset?.id]);
 
   useEffect(() => {
@@ -3413,6 +3535,9 @@ function ImageViewer(): JSX.Element | null {
         showNextViewerAsset();
       } else if (event.key === 'ArrowLeft') {
         showPreviousViewerAsset();
+      } else if ((event.key === 'Enter' || event.key === ' ') && (asset.isAnimated || asset.extension.toLowerCase() === 'gif')) {
+        event.preventDefault();
+        setGifPlaying((current) => !current);
       }
     };
 
@@ -3470,7 +3595,20 @@ function ImageViewer(): JSX.Element | null {
     event.preventDefault();
     setDragStart({ x: event.clientX, y: event.clientY, originX: offset.x, originY: offset.y });
   };
-  const viewerSource = getSafePreviewUrl(asset, 'viewer');
+  const mediaKind = getAssetMediaKind(asset);
+  const viewerSource = getSafePreviewUrl(asset, 'viewer', { gifPlaying });
+  const viewerBadges = getViewerStatusBadges(asset, t, Boolean(viewerSource), imageFailed);
+  const dimensionLabel = asset.width && asset.height ? `${asset.width} x ${asset.height}` : t('status.unknown');
+  const durationLabel = asset.durationMs ? formatDuration(asset.durationMs, i18nInstance.language, t) : t('status.unknown');
+  const metadataItems = [
+    asset.extension.toUpperCase(),
+    t(`media.type.${mediaKind}`, { defaultValue: mediaKind.toUpperCase() }),
+    dimensionLabel,
+    formatBytes(asset.sizeBytes, i18nInstance.language)
+  ];
+  if (asset.mediaType === 'video') {
+    metadataItems.push(t('viewer.durationValue', { value: durationLabel }));
+  }
 
   return (
     <div className={styles.viewerBackdrop} onClick={closeViewer}>
@@ -3478,13 +3616,25 @@ function ImageViewer(): JSX.Element | null {
         <header className={styles.viewerHeader}>
           <div>
             <strong title={asset.originalFileName}>{asset.title}</strong>
-            <span>
-              {asset.width && asset.height ? `${asset.width} x ${asset.height}` : asset.extension.toUpperCase()}
-              {' · '}
-              {formatBytes(asset.sizeBytes, i18nInstance.language)}
+            <span>{metadataItems.join(' · ')}</span>
+            <span className={styles.viewerBadgeRow}>
+              {viewerBadges.map((badge) => (
+                <span key={badge}>{badge}</span>
+              ))}
             </span>
           </div>
           <div className={styles.viewerTools}>
+            {asset.isAnimated || asset.extension.toLowerCase() === 'gif' ? (
+              <button
+                title={gifPlaying ? t('viewer.pauseGif') : t('viewer.playGif')}
+                onClick={() => {
+                  setImageFailed(false);
+                  setGifPlaying((current) => !current);
+                }}
+              >
+                {gifPlaying ? <Pause size={17} /> : <Play size={17} />}
+              </button>
+            ) : null}
             <button title={t('viewer.zoomOut')} onClick={() => zoomBy(-0.2)}>
               <ZoomOut size={17} />
             </button>
@@ -3521,7 +3671,8 @@ function ImageViewer(): JSX.Element | null {
             {imageFailed || !viewerSource ? (
               <div className={styles.viewerFallback}>
                 <Image size={34} />
-                <span>{t('viewer.loadingFailed')}</span>
+                <strong>{getViewerFallbackTitle(asset, t, imageFailed)}</strong>
+                <span>{getViewerFallbackDescription(asset, t, imageFailed)}</span>
               </div>
             ) : (
               <img
@@ -3936,11 +4087,20 @@ function ExportTemplateManagerDialog({
   const selectedTemplate = exportTemplates.find((template) => template.id === selectedId) ?? exportTemplates[0] ?? null;
   const [draft, setDraft] = useState(() => createTemplateDraft(selectedTemplate));
   const [preview, setPreview] = useState<{ markdown: string; warnings: string[] } | null>(null);
+  const [sectionCursors, setSectionCursors] = useState<Record<string, number>>({});
   const isReadOnly = draft.isBuiltin;
+  const enabledSectionCount = draft.template.sections.filter((section) => section.enabled).length;
+  const validationErrors = [
+    !draft.name.trim() ? t('export:validationNameRequired') : '',
+    draft.template.sections.length === 0 ? t('export:validationSectionRequired') : '',
+    enabledSectionCount === 0 ? t('export:validationEnabledSectionRequired') : '',
+    draft.template.sections.some((section) => !section.name.trim()) ? t('export:validationSectionNameRequired') : ''
+  ].filter(Boolean);
 
   useEffect(() => {
     setDraft(createTemplateDraft(selectedTemplate));
     setPreview(null);
+    setSectionCursors({});
   }, [selectedTemplate]);
 
   const updateSection = (sectionId: string, updater: (section: ExportTemplateSection) => ExportTemplateSection): void => {
@@ -3951,6 +4111,43 @@ function ExportTemplateManagerDialog({
         sections: current.template.sections.map((section) => (section.id === sectionId ? updater(section) : section))
       }
     }));
+  };
+
+  const moveSection = (sectionId: string, direction: -1 | 1): void => {
+    setDraft((current) => {
+      const index = current.template.sections.findIndex((section) => section.id === sectionId);
+      const targetIndex = index + direction;
+      if (index < 0 || targetIndex < 0 || targetIndex >= current.template.sections.length) {
+        return current;
+      }
+      return {
+        ...current,
+        template: {
+          ...current.template,
+          sections: moveArrayItem(current.template.sections, index, targetIndex)
+        }
+      };
+    });
+  };
+
+  const deleteSection = (sectionId: string): void => {
+    setDraft((current) => ({
+      ...current,
+      template: {
+        ...current.template,
+        sections: current.template.sections.filter((section) => section.id !== sectionId)
+      }
+    }));
+  };
+
+  const insertPlaceholder = (sectionId: string, placeholder: string): void => {
+    updateSection(sectionId, (section) => {
+      const token = `{{${placeholder}}}`;
+      const cursor = sectionCursors[sectionId] ?? section.body.length;
+      const nextBody = `${section.body.slice(0, cursor)}${token}${section.body.slice(cursor)}`;
+      setSectionCursors((current) => ({ ...current, [sectionId]: cursor + token.length }));
+      return { ...section, body: nextBody };
+    });
   };
 
   return (
@@ -4015,10 +4212,69 @@ function ExportTemplateManagerDialog({
                 }
               />
             </label>
+            <div className={styles.templateDefaultsGrid}>
+              {(['goal', 'commonTraits', 'applyInstructions', 'forbiddenRules'] as const).map((field) => (
+                <label key={field}>
+                  {t(`export:defaultFields.${field}`)}
+                  <textarea
+                    value={draft.template.defaults[field] ?? ''}
+                    readOnly={isReadOnly}
+                    rows={2}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        template: {
+                          ...current.template,
+                          defaults: { ...current.template.defaults, [field]: event.target.value }
+                        }
+                      }))
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+            <div className={styles.placeholderPanel}>
+              <strong>{t('export:availablePlaceholders')}</strong>
+              <div>
+                {EXPORT_PLACEHOLDERS.map((placeholder) => (
+                  <span key={placeholder}>{`{{${placeholder}}}`}</span>
+                ))}
+              </div>
+              <small>{t('export:placeholderHelp')}</small>
+            </div>
 
             <div className={styles.templateSections}>
-              {draft.template.sections.map((section) => (
+              {draft.template.sections.map((section, index) => (
                 <div key={section.id} className={styles.templateSectionEditor}>
+                  <div className={styles.templateSectionToolbar}>
+                    <strong>{t('export:sectionNumber', { number: index + 1 })}</strong>
+                    <span>
+                      <button
+                        type="button"
+                        title={t('export:moveSectionUp')}
+                        disabled={isReadOnly || index === 0}
+                        onClick={() => moveSection(section.id, -1)}
+                      >
+                        <ArrowUp size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        title={t('export:moveSectionDown')}
+                        disabled={isReadOnly || index === draft.template.sections.length - 1}
+                        onClick={() => moveSection(section.id, 1)}
+                      >
+                        <ArrowDown size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        title={t('export:deleteSection')}
+                        disabled={isReadOnly}
+                        onClick={() => deleteSection(section.id)}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </span>
+                  </div>
                   <label className={styles.checkControl}>
                     <input
                       type="checkbox"
@@ -4038,10 +4294,36 @@ function ExportTemplateManagerDialog({
                     readOnly={isReadOnly}
                     rows={4}
                     onChange={(event) => updateSection(section.id, (current) => ({ ...current, body: event.target.value }))}
+                    onSelect={(event) =>
+                      setSectionCursors((current) => ({
+                        ...current,
+                        [section.id]: event.currentTarget.selectionStart
+                      }))
+                    }
                   />
+                  <div className={styles.placeholderButtons}>
+                    {EXPORT_PLACEHOLDERS.map((placeholder) => (
+                      <button
+                        key={placeholder}
+                        type="button"
+                        disabled={isReadOnly}
+                        onClick={() => insertPlaceholder(section.id, placeholder)}
+                      >
+                        {`{{${placeholder}}}`}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
+
+            {validationErrors.length > 0 ? (
+              <div className={styles.templateValidation}>
+                {validationErrors.map((message) => (
+                  <small key={message}>{message}</small>
+                ))}
+              </div>
+            ) : null}
 
             {preview ? (
               <div className={styles.templatePreview}>
@@ -4070,7 +4352,8 @@ function ExportTemplateManagerDialog({
                 type="button"
                 className={styles.secondaryButton}
                 disabled={isReadOnly}
-                onClick={() =>
+                onClick={() => {
+                  const id = `section-${Date.now()}`;
                   setDraft((current) => ({
                     ...current,
                     template: {
@@ -4078,15 +4361,16 @@ function ExportTemplateManagerDialog({
                       sections: [
                         ...current.template.sections,
                         {
-                          id: `section-${Date.now()}`,
+                          id,
                           name: t('export:newSection'),
                           body: '{{assetList}}',
                           enabled: true
                         }
                       ]
                     }
-                  }))
-                }
+                  }));
+                  setSectionCursors((current) => ({ ...current, [id]: '{{assetList}}'.length }));
+                }}
               >
                 <Plus size={15} />
                 {t('export:addSection')}
@@ -4099,7 +4383,7 @@ function ExportTemplateManagerDialog({
                     template: draft.template,
                     input: { ...previewInput, outputFileName: draft.template.defaults.outputFileName || previewInput.outputFileName }
                   });
-                  setPreview(result);
+                  setPreview(result ?? { markdown: '', warnings: [t('export:previewFailed')] });
                 }}
               >
                 <Eye size={15} />
@@ -4126,7 +4410,7 @@ function ExportTemplateManagerDialog({
               <button
                 type="button"
                 className={styles.primaryButton}
-                disabled={isReadOnly || !draft.name.trim()}
+                disabled={isReadOnly || validationErrors.length > 0}
                 onClick={async () => {
                   const saved = await saveExportTemplate({
                     id: draft.id,
@@ -4146,6 +4430,86 @@ function ExportTemplateManagerDialog({
             </div>
           </div>
         </div>
+      </section>
+    </div>
+  );
+}
+
+function HelpDialog({ onClose }: { onClose: () => void }): JSX.Element {
+  const { t } = useTranslation(['common', 'settings']);
+  const config = useRefForgeStore((state) => state.config);
+  const shortcuts = [
+    ['Ctrl/Cmd+A', t('settings:shortcuts.selectAll')],
+    ['Ctrl/Cmd+Click', t('settings:shortcuts.toggle')],
+    ['Shift+Click', t('settings:shortcuts.range')],
+    [t('settings:shortcuts.dragKey'), t('settings:shortcuts.drag')],
+    ['ESC', t('settings:shortcuts.escape')],
+    ['Delete', t('settings:shortcuts.delete')],
+    ['Enter / Space', t('settings:shortcuts.openViewer')],
+    ['Arrow Left / Right', t('settings:shortcuts.viewerNavigation')],
+    [t('settings:shortcuts.mouseWheel'), t('settings:shortcuts.viewerZoom')],
+    [t('settings:shortcuts.viewerDragKey'), t('settings:shortcuts.viewerPan')]
+  ];
+
+  return (
+    <div className={styles.modalBackdrop}>
+      <section className={styles.helpDialog}>
+        <div className={styles.modalHeader}>
+          <div>
+            <h2>{t('settings:helpTitle')}</h2>
+            <span>{t('settings:helpSubtitle')}</span>
+          </div>
+          <button type="button" title={t('common:actions.close')} onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+        <section className={styles.settingsAbout}>
+          <img src={brandIconUrl} alt="" />
+          <div>
+            <h3>{config?.appName ?? 'Suwol Visual Reference'}</h3>
+            <p>{t('settings:aboutDescription')}</p>
+            <span>
+              {t('settings:version', { version: config?.appVersion ?? '0.0.0' })}
+              {' · '}
+              {config?.appLicense ?? 'Apache-2.0'}
+            </span>
+            <div className={styles.aboutLinkGrid}>
+              <button type="button" className={styles.secondaryButton} onClick={() => void window.refForge.openExternal(GITHUB_REPOSITORY_URL)}>
+                <HelpCircle size={15} />
+                {t('settings:githubRepository')}
+              </button>
+              <span>{t('settings:thirdPartyNotices', { path: THIRD_PARTY_NOTICES_PATH })}</span>
+              <span>{t('settings:knownIssues')}</span>
+              <span>{t('settings:ffmpegOptional')}</span>
+            </div>
+          </div>
+        </section>
+        <section className={styles.helpSection}>
+          <h3>
+            <Keyboard size={16} />
+            {t('settings:shortcutsTitle')}
+          </h3>
+          <div className={styles.shortcutList}>
+            {shortcuts.map(([key, description]) => (
+              <div key={key}>
+                <kbd>{key}</kbd>
+                <span>{description}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className={styles.helpSection}>
+          <h3>{t('settings:aboutLinksTitle')}</h3>
+          <div className={styles.aboutLinkGrid}>
+            <button type="button" className={styles.secondaryButton} onClick={() => void window.refForge.openExternal(GITHUB_REPOSITORY_URL)}>
+              <HelpCircle size={15} />
+              {t('settings:githubRepository')}
+            </button>
+            <span>{t('settings:thirdPartyNotices', { path: THIRD_PARTY_NOTICES_PATH })}</span>
+            <span>{t('settings:knownIssues')}</span>
+            <span>{t('settings:ffmpegOptional')}</span>
+          </div>
+        </section>
       </section>
     </div>
   );
@@ -4714,8 +5078,8 @@ function normalizeColorFilter(color: AssetFilters['color']): AssetFilters['color
   }
   return {
     hex: `#${match[1].toLowerCase()}`,
-    tolerance: clampNumber(Number(color.tolerance) || 56, 0, 441),
-    minRatio: typeof color.minRatio === 'number' && color.minRatio > 0 ? color.minRatio : 0
+    tolerance: clampNumber(Number(color.tolerance) || DEFAULT_COLOR_TOLERANCE, 0, 441),
+    minRatio: typeof color.minRatio === 'number' && color.minRatio >= 0 ? color.minRatio : DEFAULT_COLOR_MIN_RATIO
   };
 }
 
@@ -4784,27 +5148,50 @@ function fileBaseName(filePath: string): string {
   return filePath.split(/[\\/]/u).pop() ?? filePath;
 }
 
-function getAssetMediaBadges(asset: AssetRecord, t: TFunction<'common'>): string[] {
+function getAssetMediaBadges(asset: AssetRecord, t: TFunction<'common'>, limit?: number): string[] {
   const badges: string[] = [];
-  if (asset.mediaType === 'video') {
-    badges.push(t('media.video'));
+  const mediaKind = getAssetMediaKind(asset);
+  badges.push(t(`media.type.${mediaKind}`, { defaultValue: mediaKind.toUpperCase() }));
+  if (asset.thumbnailStatus !== 'ready' && asset.previewStatus !== 'ready') {
+    badges.push(t('media.placeholder'));
   }
-  if (asset.extension.toLowerCase() === 'svg') {
-    badges.push(t('media.svg'));
+  if (asset.thumbnailStatus === 'failed' || asset.previewStatus === 'failed') {
+    badges.push(t('media.warning'));
   }
-  if (asset.isAnimated || asset.extension.toLowerCase() === 'gif') {
-    badges.push(t('media.animated'));
+  if (asset.hasTransparency) {
+    badges.push(t('media.transparent'));
   }
-  if (asset.thumbnailStatus !== 'ready') {
-    badges.push(t(`media.status.${asset.thumbnailStatus}`, { defaultValue: asset.thumbnailStatus }));
+  if (asset.isFavorite) {
+    badges.push(t('media.favorite'));
   }
-  return badges;
+  return typeof limit === 'number' ? badges.slice(0, limit) : badges;
 }
 
-function getSafePreviewUrl(asset: AssetRecord, surface: 'viewer' | 'inspector'): string | null {
+function getAssetMediaKind(asset: AssetRecord): 'image' | 'gif' | 'svg' | 'video' | 'placeholder' {
   const extension = asset.extension.toLowerCase();
-  if (surface === 'viewer' && extension === 'gif') {
-    return asset.storedFileUrl;
+  if (asset.mediaType === 'video') {
+    return 'video';
+  }
+  if (extension === 'svg') {
+    return 'svg';
+  }
+  if (asset.isAnimated || extension === 'gif') {
+    return 'gif';
+  }
+  if (asset.mediaType === 'image') {
+    return 'image';
+  }
+  return 'placeholder';
+}
+
+function getSafePreviewUrl(
+  asset: AssetRecord,
+  surface: 'viewer' | 'inspector',
+  options: { gifPlaying?: boolean } = {}
+): string | null {
+  const extension = asset.extension.toLowerCase();
+  if (surface === 'viewer' && (asset.isAnimated || extension === 'gif')) {
+    return options.gifPlaying ? asset.storedFileUrl : asset.previewUrl ?? asset.thumbnailUrl;
   }
   if (extension === 'svg' || asset.mediaType === 'video') {
     return asset.previewUrl ?? asset.thumbnailUrl;
@@ -4813,6 +5200,53 @@ function getSafePreviewUrl(asset: AssetRecord, surface: 'viewer' | 'inspector'):
     return asset.previewUrl ?? asset.thumbnailUrl ?? asset.storedFileUrl;
   }
   return asset.previewUrl ?? asset.storedFileUrl;
+}
+
+function getViewerStatusBadges(
+  asset: AssetRecord,
+  t: TFunction<'common'>,
+  hasViewerSource: boolean,
+  imageFailed: boolean
+): string[] {
+  const badges = getAssetMediaBadges(asset, t);
+  if (hasViewerSource && !imageFailed) {
+    badges.push(t('media.thumbnailAvailable'));
+  } else {
+    badges.push(t('media.placeholder'));
+  }
+  if (imageFailed || asset.thumbnailStatus === 'failed' || asset.previewStatus === 'failed') {
+    badges.push(t('media.previewFailed'));
+  }
+  if (asset.mediaType === 'video' && asset.thumbnailStatus !== 'ready') {
+    badges.push(t('media.ffmpegNotConfigured'));
+  }
+  return uniqueStrings(badges);
+}
+
+function getViewerFallbackTitle(asset: AssetRecord, t: TFunction<'common'>, imageFailed: boolean): string {
+  if (imageFailed) {
+    return t('viewer.loadingFailed');
+  }
+  if (asset.mediaType === 'video') {
+    return t('viewer.videoPlaceholderTitle');
+  }
+  if (asset.extension.toLowerCase() === 'svg') {
+    return t('viewer.svgPlaceholderTitle');
+  }
+  return t('viewer.placeholderTitle');
+}
+
+function getViewerFallbackDescription(asset: AssetRecord, t: TFunction<'common'>, imageFailed: boolean): string {
+  if (imageFailed) {
+    return t('viewer.previewFailedDescription');
+  }
+  if (asset.mediaType === 'video') {
+    return t('viewer.videoPlaceholderDescription');
+  }
+  if (asset.extension.toLowerCase() === 'svg') {
+    return t('viewer.svgPlaceholderDescription');
+  }
+  return t('viewer.placeholderDescription');
 }
 
 function isEditableElement(target: EventTarget | null): boolean {
@@ -4952,6 +5386,10 @@ function formatBytes(bytes: number, language: string): string {
     return `${formatter.format(bytes / 1024)} KB`;
   }
   return `${formatter.format(bytes / 1024 / 1024)} MB`;
+}
+
+function formatPercent(value: number): string {
+  return `${Math.round(value * 100)}%`;
 }
 
 function formatDuration(milliseconds: number, language: string, t: TFunction): string {

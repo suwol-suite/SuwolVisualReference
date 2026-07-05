@@ -31,5 +31,28 @@
   "displayOnlyImportPolicy": "Display only. The MVP imports by copying into the library.",
   "displayOnlyImportFlow": "Display only, currently used by the import flow.",
   "currentLibraryPath": "Display only, current library path.",
-  "notSet": "Not set"
+  "notSet": "Not set",
+  "helpTitle": "Help",
+  "helpSubtitle": "Keyboard shortcuts and project information.",
+  "shortcutsTitle": "Keyboard Shortcuts",
+  "aboutLinksTitle": "Project",
+  "githubRepository": "GitHub repository",
+  "thirdPartyNotices": "Third-party notices: {{path}}",
+  "knownIssues": "Known issues: video thumbnails need optional external FFmpeg; rich audio/video playback is not included.",
+  "ffmpegOptional": "FFmpeg is optional, external, and not bundled with the app.",
+  "shortcuts": {
+    "selectAll": "Select the currently loaded assets.",
+    "toggle": "Add or remove an asset from the selection.",
+    "range": "Select a range.",
+    "dragKey": "Drag",
+    "drag": "Box-select visible assets.",
+    "escape": "Clear selection or close a modal.",
+    "delete": "Move selected active assets to trash.",
+    "openViewer": "Open the large media viewer.",
+    "viewerNavigation": "Move to the previous or next asset in the viewer.",
+    "mouseWheel": "Mouse wheel",
+    "viewerZoom": "Zoom the viewer.",
+    "viewerDragKey": "Drag in viewer",
+    "viewerPan": "Pan the zoomed preview."
+  }
 }

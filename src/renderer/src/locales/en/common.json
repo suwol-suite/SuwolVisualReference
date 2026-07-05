@@ -71,7 +71,8 @@
     "permanentlyDeleteSelected": "Permanently delete selected assets",
     "moveSelectedToTrash": "Move selected assets to trash",
     "exportSelected": "Export selected assets or a collection",
-    "settings": "Settings"
+    "settings": "Settings",
+    "help": "Help and shortcuts"
   },
   "filter": {
     "title": "Filters",
@@ -99,6 +100,8 @@
     "applyColor": "Filter by {{color}}",
     "clearColor": "Clear color filter",
     "colorTolerance": "Color tolerance {{value}}",
+    "colorMinRatio": "Minimum color share {{value}}",
+    "colorChip": "{{color}} · tol {{tolerance}} · min {{minRatio}}",
     "viewModes": {
       "library": "Library view",
       "favorites": "Favorites view",
@@ -110,6 +113,20 @@
     "video": "VIDEO",
     "svg": "SVG",
     "animated": "GIF",
+    "placeholder": "PLACEHOLDER",
+    "warning": "WARNING",
+    "transparent": "TRANSPARENT",
+    "favorite": "FAVORITE",
+    "thumbnailAvailable": "Thumbnail available",
+    "previewFailed": "Preview failed",
+    "ffmpegNotConfigured": "External FFmpeg not configured",
+    "type": {
+      "image": "IMAGE",
+      "gif": "GIF",
+      "svg": "SVG",
+      "video": "VIDEO",
+      "placeholder": "PLACEHOLDER"
+    },
     "status": {
       "ready": "Ready",
       "none": "No preview",
@@ -389,7 +406,17 @@
     "zoomOut": "Zoom out",
     "reset": "Fit to screen",
     "zoomLevel": "{{value}}%",
-    "loadingFailed": "Preview could not be loaded"
+    "loadingFailed": "Preview could not be loaded",
+    "playGif": "Play animated GIF",
+    "pauseGif": "Pause animated GIF",
+    "durationValue": "Duration {{value}}",
+    "placeholderTitle": "No preview available",
+    "placeholderDescription": "This file can stay in the library, but no safe preview was generated.",
+    "previewFailedDescription": "The preview failed to load. The import remains usable.",
+    "svgPlaceholderTitle": "SVG raster preview unavailable",
+    "svgPlaceholderDescription": "SVG files are not inserted inline. A safe raster preview is shown only when generated.",
+    "videoPlaceholderTitle": "Video thumbnail unavailable",
+    "videoPlaceholderDescription": "External FFmpeg is optional and not bundled. Configure FFmpeg to generate video thumbnails."
   },
   "import": {
     "statusFiles": "Importing {{count}} file(s)",

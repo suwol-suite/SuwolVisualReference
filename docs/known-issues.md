@@ -26,7 +26,9 @@ The app uses native dependencies, including `better-sqlite3` and `sharp`. Window
 
 ## Media Preview Scope
 
-Image import, thumbnails, GIF first-frame thumbnails, and raster SVG previews are the first priority. Video records can be imported, and first-frame thumbnails are attempted only when an external `ffmpeg` executable is configured or available on `PATH`. No ffmpeg binary is bundled. Missing or failing ffmpeg leaves a placeholder preview with an import warning.
+Image import, thumbnails, GIF first-frame thumbnails, and raster SVG previews are the first priority. GIFs are not autoplayed in grid/list views; the viewer provides play/pause. Video records can be imported, and first-frame thumbnails are attempted only when an external `ffmpeg` executable is configured or available on `PATH`. No ffmpeg binary is bundled. Missing or failing ffmpeg leaves a placeholder preview with an import warning.
+
+Media warnings are different from import failures. A warning means the library record was created but an optional preview, thumbnail, metadata, or color-analysis step fell back. A failure means the file itself was not imported.
 
 Audio waveforms and rich previews for non-image media are not included yet.
 

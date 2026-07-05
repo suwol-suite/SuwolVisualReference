@@ -17,6 +17,7 @@ The user-facing app name remains `Suwol Visual Reference`.
 Icon source and generated assets:
 
 - `assets/brand/icon.svg`
+- `assets/brand/icon-source.png`
 - `assets/brand/icon-1024.png`
 - `assets/brand/icon-512.png`
 - `assets/brand/icon-256.png`
@@ -36,6 +37,7 @@ npm.cmd run icons:generate
 ```
 
 `build/icon.ico` and `build/icon.png` are copied into packaged app resources so the runtime window icon resolves in Windows and Linux packages.
+When `assets/brand/icon-source.png` exists, `icons:generate` uses it as the raster source and falls back to `assets/brand/icon.svg` only when the PNG source is absent.
 
 ## Native Dependencies
 

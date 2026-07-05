@@ -92,6 +92,8 @@ Palette color filtering is covered through the `asset_colors` RGB channel query.
 
 Custom export template creation, preview rendering, unknown placeholder warnings, and template-backed export are covered in the same smoke run. This does not add renderer filesystem access.
 
+`npm.cmd run test:selection` also runs a lightweight v0.2 contract check for color defaults, SVG inline-safety, GIF viewer preview selection, RGB distance SQL shape, and export placeholder support. It is intentionally source-level and does not require FFmpeg or browser automation.
+
 ## Remaining Bottlenecks
 
 - Infinite pagination prevents initial DOM overload, but a very long browsing session can still accumulate many loaded cards. A true virtual grid remains a future upgrade if this becomes visible in manual use.

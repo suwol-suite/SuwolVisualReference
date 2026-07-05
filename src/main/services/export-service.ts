@@ -276,7 +276,11 @@ function buildTemplateMarkdown(
     commonFeatures: input.commonTraits.trim(),
     applyInstructions: input.instructions.trim(),
     forbiddenRules: input.constraints.trim(),
-    generatedAt: new Date().toISOString()
+    generatedAt: new Date().toISOString(),
+    collectionName: getCollectionName(input, assets),
+    assetCount: String(assets.length),
+    sourceUrls: buildSourceUrlList(assets),
+    fileTable: buildFileTable(assets)
   };
   const seenUnknown = new Set<string>();
   const lines = [`# ${input.name}`, ''];
@@ -324,10 +328,40 @@ function buildTagSummary(assets: AssetRecord[]): string {
   return tags.length > 0 ? tags.map((tag) => `* ${tag}`).join('\n') : '';
 }
 
+function getCollectionName(input: ExportInput, assets: AssetRecord[]): string {
+  if (!input.collectionId) {
+    return '';
+  }
+  return assets[0]?.collections.find((collection) => collection.id === input.collectionId)?.name ?? '';
+}
+
+function buildSourceUrlList(assets: AssetRecord[]): string {
+  const urls = assets
+    .map((asset) => asset.sourceUrl.trim())
+    .filter((url) => url.length > 0);
+  return urls.length > 0 ? urls.map((url) => `* ${url}`).join('\n') : '';
+}
+
+function buildFileTable(assets: AssetRecord[]): string {
+  if (assets.length === 0) {
+    return '';
+  }
+  const rows = assets.map((asset, index) => {
+    const dimensions = asset.width && asset.height ? `${asset.width}x${asset.height}` : '';
+    const tags = asset.tags.map((tag) => tag.name).join(', ');
+    return `| ${index + 1} | ${escapeMarkdownTableCell(asset.originalFileName)} | ${asset.extension} | ${dimensions} | ${escapeMarkdownTableCell(tags)} |`;
+  });
+  return ['| # | File | Ext | Dimensions | Tags |', '|---:|---|---|---|---|', ...rows].join('\n');
+}
+
 function buildColorLines(assets: AssetRecord[]): string[] {
   return assets
     .filter((asset) => asset.colors.length > 0)
     .map((asset) => `* ${asset.originalFileName}: ${asset.colors.map((color) => color.color).join(', ')}`);
+}
+
+function escapeMarkdownTableCell(value: string): string {
+  return value.replace(/\|/gu, '\\|').replace(/\r?\n/gu, ' ');
 }
 
 function getExportRefFileName(asset: AssetRecord, index: number): string {

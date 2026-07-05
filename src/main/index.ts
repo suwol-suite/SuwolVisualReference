@@ -377,6 +377,14 @@ function registerIpcHandlers(): void {
       throw new Error(result);
     }
   });
+
+  ipcMain.handle(IPC_CHANNELS.shellOpenExternal, async (_event, url: string) => {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      throw new Error('Only http(s) URLs can be opened externally.');
+    }
+    await shell.openExternal(url);
+  });
 }
 
 function registerAssetProtocol(): void {

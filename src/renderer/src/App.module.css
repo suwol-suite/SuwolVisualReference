@@ -503,6 +503,28 @@
   color: #f4f5f7;
 }
 
+.colorFilterChip {
+  min-height: 22px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #333746;
+  border-radius: 999px;
+  background: #20232c;
+  color: #dbe2ec;
+  padding: 0 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.colorFilterChip > span {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+}
+
 .gridSurface,
 .gridSurfaceDragging {
   position: relative;
@@ -925,6 +947,27 @@
   line-height: 1;
 }
 
+.assetPaletteSwatches {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.thumbWrap .assetPaletteSwatches {
+  position: absolute;
+  left: 7px;
+  top: 7px;
+}
+
+.assetPaletteSwatch {
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
 .tileStars {
   color: #ffc857;
   letter-spacing: 0;
@@ -1275,6 +1318,32 @@
   font-size: 12px;
 }
 
+.viewerBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.viewerBadgeRow span {
+  min-height: 18px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(120, 220, 202, 0.34);
+  border-radius: 999px;
+  background: rgba(16, 17, 22, 0.9);
+  color: #baf7ee;
+  padding: 0 7px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
 .viewerTools {
   flex: 0 0 auto;
   display: flex;
@@ -1467,6 +1536,7 @@
 .settingsDialog,
 .managementDialog,
 .templateDialog,
+.helpDialog,
 .resultDialog {
   width: min(720px, calc(100vw - 48px));
   max-height: calc(100vh - 48px);
@@ -1490,6 +1560,10 @@
 
 .templateDialog {
   width: min(1120px, calc(100vw - 48px));
+}
+
+.helpDialog {
+  width: min(820px, calc(100vw - 48px));
 }
 
 .resultDialog {
@@ -2214,6 +2288,52 @@
   font-size: 12px;
 }
 
+.templateDefaultsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.placeholderPanel,
+.templateValidation {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid #2f3542;
+  border-radius: 8px;
+  background: #101217;
+}
+
+.placeholderPanel > div,
+.placeholderButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.placeholderPanel span,
+.placeholderButtons button {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #333746;
+  border-radius: 999px;
+  background: #20232c;
+  color: #dbe2ec;
+  padding: 0 8px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+}
+
+.placeholderButtons button {
+  cursor: pointer;
+}
+
+.placeholderButtons button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .templateEditor input,
 .templateEditor textarea,
 .templatePreview textarea {
@@ -2244,6 +2364,39 @@
   border: 1px solid #2f3542;
   border-radius: 8px;
   background: #101217;
+}
+
+.templateSectionToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.templateSectionToolbar span {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.templateSectionToolbar button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #333746;
+  border-radius: 7px;
+  background: #20232c;
+  color: #dbe2ec;
+  cursor: pointer;
+}
+
+.templateSectionToolbar button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.templateValidation small {
+  color: #fbbf24;
 }
 
 .templatePreview {
@@ -2318,6 +2471,65 @@
 
 .settingsAbout span {
   font-size: 12px;
+}
+
+.helpSection {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #2f3542;
+  border-radius: 8px;
+  background: #101217;
+}
+
+.helpSection h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.shortcutList {
+  display: grid;
+  gap: 6px;
+}
+
+.shortcutList div {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.shortcutList kbd {
+  min-height: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #333746;
+  border-radius: 7px;
+  background: #20232c;
+  color: #f0f1f6;
+  padding: 0 8px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+}
+
+.shortcutList span,
+.aboutLinkGrid span {
+  color: #a7adb9;
+  font-size: 12px;
+}
+
+.aboutLinkGrid {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.aboutLinkGrid button {
+  justify-self: start;
 }
 
 .miniEmpty {

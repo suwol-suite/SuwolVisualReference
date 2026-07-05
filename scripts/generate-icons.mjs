@@ -6,6 +6,7 @@ import { Buffer } from 'node:buffer';
 import sharp from 'sharp';
 
 const repoRoot = process.cwd();
+const sourcePngPath = path.join(repoRoot, 'assets', 'brand', 'icon-source.png');
 const sourceSvgPath = path.join(repoRoot, 'assets', 'brand', 'icon.svg');
 const brandDir = path.join(repoRoot, 'assets', 'brand');
 const buildDir = path.join(repoRoot, 'build');
@@ -21,7 +22,8 @@ const icnsTypes = new Map([
   [1024, 'ic10']
 ]);
 
-await fs.access(sourceSvgPath);
+const sourceIconPath = (await exists(sourcePngPath)) ? sourcePngPath : sourceSvgPath;
+await fs.access(sourceIconPath);
 await fs.mkdir(brandDir, { recursive: true });
 await fs.mkdir(buildDir, { recursive: true });
 
@@ -42,10 +44,20 @@ await fs.writeFile(
 console.log('Generated brand icons in assets/brand and build.');
 
 async function renderPng(size) {
-  return sharp(sourceSvgPath, { density: 384 })
+  const inputOptions = sourceIconPath.endsWith('.svg') ? { density: 384 } : {};
+  return sharp(sourceIconPath, inputOptions)
     .resize(size, size, { fit: 'contain' })
     .png()
     .toBuffer();
+}
+
+async function exists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function createIco(entries) {

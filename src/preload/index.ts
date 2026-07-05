@@ -125,6 +125,7 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.exportTemplatesPreview, input),
   createExport: (input: ExportInput): Promise<ExportResult> => ipcRenderer.invoke(IPC_CHANNELS.exportCreate, input),
   openPath: (targetPath: string): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.shellOpenPath, targetPath),
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.shellOpenExternal, url),
   getPathForFile: (file: File): string => webUtils.getPathForFile(file)
 };
 

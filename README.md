@@ -10,15 +10,16 @@ It helps you build portable local libraries of image and UI references, add prac
 - Open recent libraries without browsing for the folder again.
 - Import individual files or recursive folders.
 - Keep thumbnails, SVG raster previews, animated GIF badges, video placeholder metadata, tags, memo, rating, favorite state, source URL, collections, and smart folders.
-- Search, sort, filter by metadata or palette color, paginate, and incrementally load large libraries.
+- Search, sort, filter by metadata or palette color with tolerance/minimum-share controls, paginate, and incrementally load large libraries.
 - Switch between thumbnail grid and dense configurable list views.
 - Manage tags and collections, including collection colors, cover images, and manual collection order.
 - Build smart folders with editable multi-condition rules and result count previews.
 - Use desktop-style selection, range selection, drag-box selection, and multi-selection batch actions.
 - Review SHA-256 duplicates, merge metadata, ignore groups, or move redundant copies to trash.
 - Restore from trash or permanently delete library-internal copies.
-- Open a large image viewer with zoom and pan.
-- Export selected assets or collections to Codex Markdown reference packs with built-in or custom templates.
+- Open a large media viewer with image zoom/pan, GIF play/pause, safe SVG raster previews, and video thumbnail placeholders.
+- Export selected assets or collections to Codex Markdown reference packs with built-in or custom templates and live placeholder preview.
+- Review keyboard shortcuts and project information from Help or Settings/About.
 - Use the app in Korean or English.
 
 ## Screenshots
