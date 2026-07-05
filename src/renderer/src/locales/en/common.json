@@ -65,7 +65,7 @@
     "listView": "List view",
     "selectAssetsFirst": "Select assets first",
     "openLibrary": "Open library",
-    "importFiles": "Import images",
+    "importFiles": "Import media",
     "importFolder": "Import folder",
     "restoreSelected": "Restore selected assets",
     "permanentlyDeleteSelected": "Permanently delete selected assets",
@@ -95,11 +95,26 @@
     "recentDays": "Imported in recent days",
     "hasMemo": "Has memo",
     "hasSourceUrl": "Has source URL",
+    "color": "Palette color",
+    "applyColor": "Filter by {{color}}",
+    "clearColor": "Clear color filter",
+    "colorTolerance": "Color tolerance {{value}}",
     "viewModes": {
       "library": "Library view",
       "favorites": "Favorites view",
       "trash": "Trash view",
       "duplicates": "Duplicate resolution view"
+    }
+  },
+  "media": {
+    "video": "VIDEO",
+    "svg": "SVG",
+    "animated": "GIF",
+    "status": {
+      "ready": "Ready",
+      "none": "No preview",
+      "failed": "Preview failed",
+      "unavailable": "No preview"
     }
   },
   "sort": {
@@ -165,9 +180,9 @@
     "emptyFilteredTitle": "No matching assets",
     "emptyTitle": "Drop images here",
     "emptyFilteredDescription": "Try clearing search, tag, favorite, or collection filters.",
-    "emptyDescription": "PNG, JPG, WebP, GIF, and SVG files are copied into the current library.",
+    "emptyDescription": "Images, SVGs, animated GIFs, and supported videos are copied into the current library.",
     "dropOverlay": "Drop to import into this library",
-    "importing": "Importing images...",
+    "importing": "Importing media...",
     "loading": "Loading...",
     "loadMore": "Load more",
     "totalCount": "Total {{count}}",
@@ -310,6 +325,8 @@
     "ratio": "Ratio",
     "extension": "Extension",
     "type": "Type",
+    "duration": "Duration",
+    "previewStatus": "Preview",
     "hash": "Hash",
     "path": "Path",
     "original": "Original",
@@ -386,6 +403,7 @@
   },
   "fileStatus": {
     "imported": "Imported",
+    "warning": "Warning",
     "duplicate": "Duplicate",
     "failed": "Failed",
     "unsupported": "Unsupported"

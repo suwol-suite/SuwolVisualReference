@@ -36,6 +36,8 @@ Migration `005_asset_organization_tools.sql` adds explicit collection cover meta
 
 Migration `006_smart_folder_and_order_indexes.sql` adds safe `IF NOT EXISTS` indexes for rating, extension, media type, and collection order queries. It does not touch `collections.cover_asset_id`, so existing databases that already applied migration `005` are not asked to add that column again.
 
+Migration `007_media_color_export_templates.sql` adds media state columns on `assets`, RGB channels on `asset_colors`, indexes for RGB/media queries, and the library-scoped `export_templates` table. `LibraryDatabase.initialize` backfills RGB channels from existing HEX palette rows after migrations run.
+
 ## Library Folder Structure
 
 Each library is a portable folder:
@@ -55,27 +57,29 @@ Database paths for asset files are library-relative paths. Main-process helpers 
 ## Import Flow
 
 1. Renderer collects dropped files, selected files, or a selected folder through preload.
-2. Main process validates supported image extensions from `config/app.config.json`.
+2. Main process validates supported image and video extensions from `config/app.config.json`.
 3. Folder import scans recursively while skipping common hidden/system/temp entries.
 4. An `import_batches` row is created before processing.
 5. Import service hashes each supported file with SHA-256.
 6. Duplicates are detected by hash and skipped unless `duplicateMode: "add"` is used.
 7. The original is copied into `assets/originals` using the asset id.
-8. Sharp extracts dimensions and a small color palette.
-9. Sharp writes a WebP thumbnail into `assets/thumbnails`.
-10. Metadata, source-relative path, batch id, and colors are inserted into SQLite.
-11. Import metrics are written back to the batch row and exposed in the UI.
-12. Renderer reloads library summary, metadata, and asset grid state.
+8. Sharp extracts dimensions, GIF animation state, transparency, and a small color palette for image media.
+9. Sharp writes first-frame WebP thumbnails for images and raster WebP previews for SVG files. SVG originals are never inlined by the renderer.
+10. Optional external `ffprobe` and `ffmpeg` can read video metadata and generate first-frame thumbnails. No ffmpeg binary is bundled; missing or failing ffmpeg creates warnings and a placeholder state instead of failing the import.
+11. Metadata, source-relative path, batch id, media preview statuses, and colors are inserted into SQLite.
+12. Import metrics are written back to the batch row and exposed in the UI.
+13. Renderer reloads library summary, metadata, and asset grid state.
 
 ## Export Flow
 
 1. Renderer submits selected asset ids or a collection id.
 2. Main process resolves assets from SQLite.
 3. Originals are copied to `exports/<export-name>/refs/`.
-4. `instruction.md` is generated using the locale-aware template lookup. `config/export-templates/codex.<locale>.json` is preferred, with `config/export-templates/codex.json` as fallback.
-5. Export preset defaults are read from `config/export-presets.<locale>.json` when a locale is provided, with `config/export-presets.json` as fallback.
-6. Markdown references use relative `./refs/...` paths.
-7. The export job is recorded in SQLite.
+4. If no custom template is selected, `instruction.md` is generated using the locale-aware built-in template lookup. `config/export-templates/codex.<locale>.json` is preferred, with `config/export-templates/codex.json` as fallback.
+5. If a custom template is selected, the main process renders DB-backed template sections with supported placeholders such as `{{goal}}`, `{{references}}`, `{{assetList}}`, `{{assetNotes}}`, `{{tags}}`, `{{colors}}`, `{{commonFeatures}}`, `{{applyInstructions}}`, `{{forbiddenRules}}`, and `{{generatedAt}}`. Unknown placeholders are replaced with an empty string and returned as warnings.
+6. Export preset defaults are read from `config/export-presets.<locale>.json` when a locale is provided, with `config/export-presets.json` as fallback.
+7. Markdown references use relative `./refs/...` paths.
+8. The export job is recorded in SQLite.
 
 ## i18n Flow
 
@@ -97,7 +101,7 @@ The query accepts view/filter fields for library, favorites, trash, duplicates, 
 
 Structured sorting supports imported date, title, file size, pixel count, rating, extension, and collection order. Legacy string sort values are still accepted at the DB boundary for compatibility.
 
-Advanced filters support media type, extension, favorite-only, minimum rating, included tags, excluded tags, orientation/aspect, minimum width, minimum height, memo presence, source URL presence, recency, duplicate-only, and deleted-only conditions. SQL column and order clauses are whitelisted; renderer input is normalized before it reaches IPC.
+Advanced filters support media type, extension, palette color, favorite-only, minimum rating, included tags, excluded tags, orientation/aspect, minimum width, minimum height, memo presence, source URL presence, recency, duplicate-only, and deleted-only conditions. SQL column and order clauses are whitelisted; renderer input is normalized before it reaches IPC. Palette color search uses stored RGB channels and a bounded Euclidean distance comparison in SQL.
 
 The app shell uses resizable sidebar/center/inspector tracks with `overflow: hidden`; the center grid, sidebar lists, and inspector own their scroll areas. Sidebar and inspector widths are saved in `localStorage`, and double-clicking a splitter resets the width. This prevents parent flex/grid `min-height` issues from blocking wheel and trackpad scroll.
 

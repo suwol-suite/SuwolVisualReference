@@ -25,6 +25,10 @@ import type {
   ExportInput,
   ExportPreset,
   ExportResult,
+  ExportTemplatePreviewInput,
+  ExportTemplatePreviewResult,
+  ExportTemplateRecord,
+  ExportTemplateSaveInput,
   ImportFilesInput,
   ImportBatchRecord,
   ImportFolderInput,
@@ -112,6 +116,13 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.smartFoldersPreview, query),
   listExportPresets: (locale?: LocaleCode): Promise<ExportPreset[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.exportPresetsList, locale),
+  listExportTemplates: (locale?: LocaleCode): Promise<ExportTemplateRecord[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.exportTemplatesList, locale),
+  saveExportTemplate: (input: ExportTemplateSaveInput): Promise<ExportTemplateRecord> =>
+    ipcRenderer.invoke(IPC_CHANNELS.exportTemplatesSave, input),
+  deleteExportTemplate: (id: string): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.exportTemplatesDelete, id),
+  previewExportTemplate: (input: ExportTemplatePreviewInput): Promise<ExportTemplatePreviewResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.exportTemplatesPreview, input),
   createExport: (input: ExportInput): Promise<ExportResult> => ipcRenderer.invoke(IPC_CHANNELS.exportCreate, input),
   openPath: (targetPath: string): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.shellOpenPath, targetPath),
   getPathForFile: (file: File): string => webUtils.getPathForFile(file)

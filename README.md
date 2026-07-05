@@ -9,8 +9,8 @@ It helps you build portable local libraries of image and UI references, add prac
 - Create and open portable local libraries.
 - Open recent libraries without browsing for the folder again.
 - Import individual files or recursive folders.
-- Keep thumbnails, previews, tags, memo, rating, favorite state, source URL, collections, and smart folders.
-- Search, sort, filter, paginate, and incrementally load large libraries.
+- Keep thumbnails, SVG raster previews, animated GIF badges, video placeholder metadata, tags, memo, rating, favorite state, source URL, collections, and smart folders.
+- Search, sort, filter by metadata or palette color, paginate, and incrementally load large libraries.
 - Switch between thumbnail grid and dense configurable list views.
 - Manage tags and collections, including collection colors, cover images, and manual collection order.
 - Build smart folders with editable multi-condition rules and result count previews.
@@ -18,7 +18,7 @@ It helps you build portable local libraries of image and UI references, add prac
 - Review SHA-256 duplicates, merge metadata, ignore groups, or move redundant copies to trash.
 - Restore from trash or permanently delete library-internal copies.
 - Open a large image viewer with zoom and pan.
-- Export selected assets or collections to Codex Markdown reference packs.
+- Export selected assets or collections to Codex Markdown reference packs with built-in or custom templates.
 - Use the app in Korean or English.
 
 ## Screenshots
@@ -132,7 +132,7 @@ npm.cmd run test:ui-import
 npm.cmd run test:library-perf -- "<existing-library-path>"
 ```
 
-`smoke` creates a temporary local library, imports files and nested folders, checks duplicate handling, metadata operations, advanced sort/filter queries, collection covers, smart folders, trash/restore, permanent delete result handling, thumbnails, persistence, and Codex Markdown export.
+`smoke` creates a temporary local library, imports files and nested folders, checks SVG/GIF/video fallback import, duplicate handling, metadata operations, advanced sort/filter and palette color queries, collection covers, smart folders, trash/restore, permanent delete result handling, thumbnails, persistence, custom export templates, and Codex Markdown export.
 
 ## Release Build
 

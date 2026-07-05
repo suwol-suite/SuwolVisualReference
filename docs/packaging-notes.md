@@ -41,6 +41,8 @@ npm.cmd run icons:generate
 
 The app depends on `better-sqlite3` and `sharp`.
 
+Video thumbnail extraction is optional and uses only an external `ffmpeg`/`ffprobe` executable from config or `PATH`. The package must not add `ffmpeg-static` or bundle an ffmpeg binary.
+
 Rules for release builds:
 
 - Build the Windows ZIP on Windows.
@@ -60,6 +62,7 @@ The main process reads these runtime resources:
 - `config/default-tags.json`
 - `config/export-presets*.json`
 - `config/export-templates/*.json`
+- custom export templates stored in library SQLite databases at runtime
 - `package.json`
 - `build/icon.ico`
 - `build/icon.png`

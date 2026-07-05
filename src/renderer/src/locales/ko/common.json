@@ -65,7 +65,7 @@
     "listView": "리스트 보기",
     "selectAssetsFirst": "먼저 자산을 선택하세요",
     "openLibrary": "라이브러리 열기",
-    "importFiles": "이미지 가져오기",
+    "importFiles": "미디어 가져오기",
     "importFolder": "폴더 가져오기",
     "restoreSelected": "선택한 자산 복원",
     "permanentlyDeleteSelected": "선택한 자산 영구 삭제",
@@ -95,11 +95,26 @@
     "recentDays": "최근 N일 안에 가져옴",
     "hasMemo": "메모 있음",
     "hasSourceUrl": "소스 URL 있음",
+    "color": "팔레트 색상",
+    "applyColor": "{{color}} 색상으로 필터",
+    "clearColor": "색상 필터 해제",
+    "colorTolerance": "색상 허용 범위 {{value}}",
     "viewModes": {
       "library": "라이브러리 보기",
       "favorites": "즐겨찾기 보기",
       "trash": "휴지통 보기",
       "duplicates": "중복 해결 보기"
+    }
+  },
+  "media": {
+    "video": "VIDEO",
+    "svg": "SVG",
+    "animated": "GIF",
+    "status": {
+      "ready": "준비됨",
+      "none": "미리보기 없음",
+      "failed": "미리보기 실패",
+      "unavailable": "미리보기 없음"
     }
   },
   "sort": {
@@ -165,9 +180,9 @@
     "emptyFilteredTitle": "일치하는 자산이 없습니다",
     "emptyTitle": "이미지를 여기에 놓으세요",
     "emptyFilteredDescription": "검색, 태그, 즐겨찾기 또는 컬렉션 필터를 해제해 보세요.",
-    "emptyDescription": "PNG, JPG, WebP, GIF, SVG 파일을 현재 라이브러리로 복사합니다.",
+    "emptyDescription": "이미지, SVG, 애니메이션 GIF, 지원되는 비디오를 현재 라이브러리로 복사합니다.",
     "dropOverlay": "놓으면 이 라이브러리로 가져옵니다",
-    "importing": "이미지 가져오는 중...",
+    "importing": "미디어 가져오는 중...",
     "loading": "불러오는 중...",
     "loadMore": "더 불러오기",
     "totalCount": "전체 {{count}}개",
@@ -310,6 +325,8 @@
     "ratio": "비율",
     "extension": "확장자",
     "type": "유형",
+    "duration": "길이",
+    "previewStatus": "미리보기",
     "hash": "해시",
     "path": "경로",
     "original": "원본",
@@ -386,6 +403,7 @@
   },
   "fileStatus": {
     "imported": "가져옴",
+    "warning": "경고",
     "duplicate": "중복",
     "failed": "실패",
     "unsupported": "미지원"

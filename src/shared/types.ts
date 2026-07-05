@@ -15,7 +15,10 @@ export type AppConfig = {
   autoDuplicateCheck: boolean;
   autoColorAnalysis: boolean;
   supportedImageExtensions: string[];
+  supportedVideoExtensions: string[];
   placeholderExtensions: string[];
+  ffmpegPath?: string;
+  ffprobePath?: string;
 };
 
 export type LibraryManifest = {
@@ -91,6 +94,9 @@ export type AssetColor = {
   id: string;
   assetId: string;
   color: string;
+  red: number | null;
+  green: number | null;
+  blue: number | null;
   population: number;
   sortOrder: number;
 };
@@ -110,6 +116,11 @@ export type AssetRecord = {
   width: number | null;
   height: number | null;
   durationMs: number | null;
+  isAnimated: boolean;
+  hasTransparency: boolean;
+  thumbnailStatus: string;
+  previewStatus: string;
+  analysisStatus: string;
   hash: string;
   perceptualHash: string | null;
   rating: number;
@@ -160,6 +171,11 @@ export type AssetSort = {
 export type AssetFilters = {
   mediaTypes?: string[];
   extensions?: string[];
+  color?: {
+    hex: string;
+    tolerance: number;
+    minRatio?: number;
+  } | null;
   favoriteOnly?: boolean;
   minRating?: number | null;
   includeTagIds?: string[];
@@ -252,6 +268,7 @@ export type ImportItemResult = {
   asset?: AssetRecord;
   duplicateAsset?: AssetRecord;
   error?: string;
+  warnings?: string[];
   originalRelativePath?: string | null;
 };
 
@@ -460,6 +477,7 @@ export type ExportPreset = {
 export type ExportInput = {
   locale?: LocaleCode;
   presetId?: string;
+  templateId?: string;
   name: string;
   goal: string;
   commonTraits: string;
@@ -475,4 +493,53 @@ export type ExportResult = {
   markdownPath: string;
   refsPath: string;
   assetCount: number;
+  warnings?: string[];
+};
+
+export type ExportTemplateSection = {
+  id: string;
+  name: string;
+  body: string;
+  enabled: boolean;
+};
+
+export type ExportTemplateDefinition = {
+  sections: ExportTemplateSection[];
+  defaults: {
+    goal?: string;
+    commonTraits?: string;
+    applyInstructions?: string;
+    forbiddenRules?: string;
+    outputFileName?: string;
+  };
+};
+
+export type ExportTemplateRecord = {
+  id: string;
+  libraryId: string | null;
+  name: string;
+  description: string;
+  format: 'codex-markdown';
+  template: ExportTemplateDefinition;
+  isBuiltin: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ExportTemplateSaveInput = {
+  id?: string;
+  name: string;
+  description?: string;
+  template: ExportTemplateDefinition;
+};
+
+export type ExportTemplatePreviewInput = {
+  templateId?: string;
+  template?: ExportTemplateDefinition;
+  input: ExportInput;
+};
+
+export type ExportTemplatePreviewResult = {
+  markdown: string;
+  warnings: string[];
 };

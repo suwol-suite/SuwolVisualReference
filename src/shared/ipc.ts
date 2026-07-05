@@ -47,6 +47,10 @@ export const IPC_CHANNELS = {
   smartFoldersDelete: 'smart-folders:delete',
   smartFoldersPreview: 'smart-folders:preview',
   exportPresetsList: 'export-presets:list',
+  exportTemplatesList: 'export-templates:list',
+  exportTemplatesSave: 'export-templates:save',
+  exportTemplatesDelete: 'export-templates:delete',
+  exportTemplatesPreview: 'export-templates:preview',
   exportCreate: 'export:create',
   shellOpenPath: 'shell:open-path'
 } as const;

@@ -4,6 +4,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { lookup } from 'mime-types';
 import type {
+  AppConfig,
   DuplicateMode,
   ImportFilesInput,
   ImportFolderInput,
@@ -48,7 +49,7 @@ export class AssetImportService {
   async importFiles(input: ImportFilesInput): Promise<ImportSummary> {
     const config = loadAppConfig();
     const startedAt = Date.now();
-    const expanded = await expandImportInput(input, config.supportedImageExtensions);
+    const expanded = await expandImportInput(input, getSupportedImportExtensions(config));
     const db = this.libraryService.requireDb();
     const batch = db.createImportBatch({
       sourceType: expanded.sourceType,
@@ -87,9 +88,10 @@ export class AssetImportService {
     const scanStartedAt = Date.now();
     const scan = await scanFolder(input.folderPath);
     const scanDurationMs = Date.now() - scanStartedAt;
-    const supportedPaths = scan.filePaths.filter((filePath) => isSupported(filePath, config.supportedImageExtensions));
+    const supportedExtensions = getSupportedImportExtensions(config);
+    const supportedPaths = scan.filePaths.filter((filePath) => isSupported(filePath, supportedExtensions));
     const unsupportedItems = scan.filePaths
-      .filter((filePath) => !isSupported(filePath, config.supportedImageExtensions))
+      .filter((filePath) => !isSupported(filePath, supportedExtensions))
       .map((filePath): ImportItemResult => ({
         sourcePath: filePath,
         status: 'unsupported',
@@ -185,7 +187,8 @@ export class AssetImportService {
     const originalRelativePath =
       context.relativePathByFile?.get(filePath) ?? (context.basePath ? toOriginalRelativePath(context.basePath, filePath) : null);
 
-    if (!config.supportedImageExtensions.includes(extension)) {
+    const supportedExtensions = getSupportedImportExtensions(config);
+    if (!supportedExtensions.includes(extension)) {
       return {
         sourcePath: filePath,
         status: config.placeholderExtensions.includes(extension) ? 'unsupported' : 'unsupported',
@@ -212,20 +215,95 @@ export class AssetImportService {
       }
 
       const id = crypto.randomUUID();
+      const isVideo = config.supportedVideoExtensions.includes(extension);
+      const isSvg = extension === 'svg';
       const storedRelativePath = `${manifest.paths.originals}/${id}.${extension}`;
       const thumbnailRelativePath = `${manifest.paths.thumbnails}/${id}.webp`;
+      const previewRelativePath = isSvg ? `${manifest.paths.previews}/${id}.webp` : null;
       const storedAbsolutePath = db.resolvePath(storedRelativePath);
       const thumbnailAbsolutePath = db.resolvePath(thumbnailRelativePath);
+      const previewAbsolutePath = previewRelativePath ? db.resolvePath(previewRelativePath) : null;
+      const warnings: string[] = [];
 
       await fsp.mkdir(path.dirname(storedAbsolutePath), { recursive: true });
       await measureAsync(context.metrics, 'copyDurationMs', () => fsp.copyFile(filePath, storedAbsolutePath));
 
-      const analysis = await measureAsync(context.metrics, 'colorAnalysisDurationMs', () =>
-        this.mediaService.analyzeImage(storedAbsolutePath)
-      );
-      await measureAsync(context.metrics, 'thumbnailDurationMs', () =>
-        this.mediaService.createThumbnail(storedAbsolutePath, thumbnailAbsolutePath, config.thumbnailSize)
-      );
+      let width: number | null = null;
+      let height: number | null = null;
+      let durationMs: number | null = null;
+      let isAnimated = false;
+      let hasTransparency = false;
+      let colors: Array<{ color: string; population: number; sortOrder: number }> = [];
+      let thumbnailPath: string | null = null;
+      let previewPath: string | null = null;
+      let thumbnailStatus = 'none';
+      let previewStatus = 'none';
+      let analysisStatus = 'ready';
+
+      if (isVideo) {
+        const metadata = await measureAsync(context.metrics, 'colorAnalysisDurationMs', () =>
+          this.mediaService.analyzeVideo(storedAbsolutePath, config.ffprobePath)
+        );
+        width = metadata.width;
+        height = metadata.height;
+        durationMs = metadata.durationMs;
+        if (metadata.warnings.length > 0) {
+          warnings.push(...metadata.warnings);
+          analysisStatus = 'partial';
+        }
+        const thumbnail = await measureAsync(context.metrics, 'thumbnailDurationMs', () =>
+          this.mediaService.createVideoThumbnail(storedAbsolutePath, thumbnailAbsolutePath, config.thumbnailSize, {
+            ffmpegPath: config.ffmpegPath,
+            durationMs
+          })
+        );
+        if (thumbnail.created) {
+          thumbnailPath = thumbnailRelativePath;
+          thumbnailStatus = 'ready';
+        } else {
+          thumbnailStatus = 'unavailable';
+          warnings.push(...thumbnail.warnings);
+        }
+      } else {
+        try {
+          const analysis = await measureAsync(context.metrics, 'colorAnalysisDurationMs', () =>
+            this.mediaService.analyzeImage(storedAbsolutePath)
+          );
+          width = analysis.width;
+          height = analysis.height;
+          durationMs = analysis.durationMs;
+          isAnimated = analysis.isAnimated;
+          hasTransparency = analysis.hasTransparency;
+          colors = analysis.colors;
+        } catch (error) {
+          analysisStatus = 'failed';
+          warnings.push(`Image analysis unavailable: ${error instanceof Error ? error.message : String(error)}`);
+        }
+
+        try {
+          await measureAsync(context.metrics, 'thumbnailDurationMs', () =>
+            this.mediaService.createThumbnail(storedAbsolutePath, thumbnailAbsolutePath, config.thumbnailSize)
+          );
+          thumbnailPath = thumbnailRelativePath;
+          thumbnailStatus = 'ready';
+        } catch (error) {
+          thumbnailStatus = 'failed';
+          warnings.push(`Thumbnail unavailable: ${error instanceof Error ? error.message : String(error)}`);
+        }
+
+        if (previewAbsolutePath && previewRelativePath) {
+          try {
+            await measureAsync(context.metrics, 'thumbnailDurationMs', () =>
+              this.mediaService.createPreview(storedAbsolutePath, previewAbsolutePath, config.thumbnailSize)
+            );
+            previewPath = previewRelativePath;
+            previewStatus = 'ready';
+          } catch (error) {
+            previewStatus = 'failed';
+            warnings.push(`SVG preview unavailable: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+      }
 
       const now = new Date().toISOString();
       const originalFileName = path.basename(filePath);
@@ -236,15 +314,20 @@ export class AssetImportService {
           title: path.parse(originalFileName).name,
           originalFileName,
           storedFilePath: storedRelativePath,
-          thumbnailPath: thumbnailRelativePath,
-          previewPath: null,
-          mediaType: 'image',
+          thumbnailPath,
+          previewPath,
+          mediaType: isVideo ? 'video' : 'image',
           mimeType: lookup(filePath) || null,
           extension,
           sizeBytes: stat.size,
-          width: analysis.width,
-          height: analysis.height,
-          durationMs: null,
+          width,
+          height,
+          durationMs,
+          isAnimated,
+          hasTransparency,
+          thumbnailStatus,
+          previewStatus,
+          analysisStatus,
           hash,
           perceptualHash: null,
           rating: 0,
@@ -259,7 +342,7 @@ export class AssetImportService {
           createdAt: now,
           updatedAt: now,
           importedAt: now,
-          colors: analysis.colors
+          colors
         })
       );
 
@@ -272,6 +355,7 @@ export class AssetImportService {
         status: 'imported',
         asset: context.keepAssetPayloads ? asset : undefined,
         duplicateAsset: context.keepAssetPayloads ? (duplicateAsset ?? undefined) : undefined,
+        warnings: warnings.length > 0 ? warnings : undefined,
         originalRelativePath
       };
     } catch (error) {
@@ -451,6 +535,10 @@ function isSupported(filePath: string, supportedExtensions: string[]): boolean {
   return supportedExtensions.includes(path.extname(filePath).replace('.', '').toLowerCase());
 }
 
+function getSupportedImportExtensions(config: AppConfig): string[] {
+  return uniqueStrings([...config.supportedImageExtensions, ...config.supportedVideoExtensions]);
+}
+
 function toOriginalRelativePath(basePath: string, filePath: string): string {
   return path.relative(basePath, filePath).split(path.sep).join('/');
 }
@@ -463,6 +551,10 @@ function describeFileSelection(filePaths: string[]): string {
     return filePaths[0];
   }
   return `${filePaths.length} selected files`;
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.filter(Boolean))];
 }
 
 function compactFolderItems(items: ImportItemResult[]): ImportItemResult[] {

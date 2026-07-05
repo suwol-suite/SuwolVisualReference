@@ -26,7 +26,9 @@ The app uses native dependencies, including `better-sqlite3` and `sharp`. Window
 
 ## Media Preview Scope
 
-Image import, thumbnails, and previews are the first priority. Advanced video thumbnails, audio waveforms, and rich previews for non-image media are not included yet.
+Image import, thumbnails, GIF first-frame thumbnails, and raster SVG previews are the first priority. Video records can be imported, and first-frame thumbnails are attempted only when an external `ffmpeg` executable is configured or available on `PATH`. No ffmpeg binary is bundled. Missing or failing ffmpeg leaves a placeholder preview with an import warning.
+
+Audio waveforms and rich previews for non-image media are not included yet.
 
 ## OCR, AI Tagging, And Browser Capture
 

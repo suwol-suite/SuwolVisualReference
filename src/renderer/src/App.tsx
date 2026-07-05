@@ -30,6 +30,7 @@ import {
   Eye,
   EyeOff,
   FileOutput,
+  FileImage,
   Filter,
   FolderInput,
   FolderOpen,
@@ -63,6 +64,9 @@ import type {
   DuplicateGroup,
   ExportInput,
   ExportPreset,
+  ExportTemplateDefinition,
+  ExportTemplateRecord,
+  ExportTemplateSection,
   SmartFolderCondition,
   SmartFolderQuery,
   SmartFolderRecord
@@ -1000,6 +1004,7 @@ function FilterPopover({
   const [extensionDraft, setExtensionDraft] = useState((assetFilters.extensions ?? []).join(', '));
   const includeTagId = filterDraft.includeTagIds?.[0] ?? '';
   const excludeTagId = filterDraft.excludeTagIds?.[0] ?? '';
+  const colorDraft = filterDraft.color ?? null;
   const activeCount = [
     search.trim(),
     tagId,
@@ -1057,6 +1062,67 @@ function FilterPopover({
             placeholder={t('filter.extensionsPlaceholder')}
           />
         </label>
+        <div className={styles.colorFilterControl}>
+          <label>
+            {t('filter.color')}
+            <span className={styles.colorFilterRow}>
+              <input
+                type="color"
+                value={toColorInputValue(colorDraft?.hex)}
+                onChange={(event) =>
+                  setFilterDraft((current) => ({
+                    ...current,
+                    color: {
+                      hex: event.target.value,
+                      tolerance: current.color?.tolerance ?? 56,
+                      minRatio: current.color?.minRatio ?? 0.01
+                    }
+                  }))
+                }
+              />
+              <input
+                value={colorDraft?.hex ?? ''}
+                placeholder="#78dcca"
+                onChange={(event) =>
+                  setFilterDraft((current) => ({
+                    ...current,
+                    color: event.target.value.trim()
+                      ? {
+                          hex: event.target.value.trim(),
+                          tolerance: current.color?.tolerance ?? 56,
+                          minRatio: current.color?.minRatio ?? 0.01
+                        }
+                      : null
+                  }))
+                }
+              />
+              <button
+                type="button"
+                title={t('filter.clearColor')}
+                onClick={() => setFilterDraft((current) => ({ ...current, color: null }))}
+              >
+                <X size={13} />
+              </button>
+            </span>
+          </label>
+          <label>
+            {t('filter.colorTolerance', { value: colorDraft?.tolerance ?? 56 })}
+            <input
+              type="range"
+              min="8"
+              max="160"
+              step="4"
+              value={colorDraft?.tolerance ?? 56}
+              disabled={!colorDraft}
+              onChange={(event) =>
+                setFilterDraft((current) => ({
+                  ...current,
+                  color: current.color ? { ...current.color, tolerance: Number(event.target.value) } : current.color
+                }))
+              }
+            />
+          </label>
+        </div>
         <label>
           {t('filter.minRating')}
           <select
@@ -1709,10 +1775,16 @@ function ListColumnValue({
         <span className={styles.listTitle}>
           <strong>{asset.title}</strong>
           <small>{asset.originalFileName}</small>
+          <AssetMediaBadges asset={asset} compact />
         </span>
       );
     case 'extension':
-      return <span>{asset.extension.toUpperCase()}</span>;
+      return (
+        <span className={styles.listPills}>
+          {asset.extension.toUpperCase()}
+          <AssetMediaBadges asset={asset} compact />
+        </span>
+      );
     case 'size':
       return <span>{formatBytes(asset.sizeBytes, language)}</span>;
     case 'dimensions':
@@ -1905,6 +1977,7 @@ const AssetTile = memo(function AssetTile({
             <Heart size={13} fill="currentColor" />
           </span>
         ) : null}
+        <AssetMediaBadges asset={asset} />
       </span>
       {showFileNames ? <span className={styles.assetTitle}>{asset.title}</span> : null}
       <span className={styles.assetMeta}>
@@ -1914,6 +1987,21 @@ const AssetTile = memo(function AssetTile({
     </button>
   );
 });
+
+function AssetMediaBadges({ asset, compact = false }: { asset: AssetRecord; compact?: boolean }): JSX.Element | null {
+  const { t } = useTranslation('common');
+  const badges = getAssetMediaBadges(asset, t);
+  if (badges.length === 0) {
+    return null;
+  }
+  return (
+    <span className={compact ? styles.mediaBadgesCompact : styles.mediaBadges}>
+      {badges.map((badge) => (
+        <span key={badge}>{badge}</span>
+      ))}
+    </span>
+  );
+}
 
 function TagManagerDialog({ onClose }: { onClose: () => void }): JSX.Element {
   const { t } = useTranslation('common');
@@ -2352,7 +2440,7 @@ function SmartFolderManagerDialog({ onClose }: { onClose: () => void }): JSX.Ele
               {draft.query.conditions.length === 0 ? <div className={styles.miniEmpty}>{t('smartFolder.noConditions')}</div> : null}
             </div>
             <datalist id="smart-folder-extensions">
-              {(config?.supportedImageExtensions ?? []).map((extension) => (
+              {[...(config?.supportedImageExtensions ?? []), ...(config?.supportedVideoExtensions ?? [])].map((extension) => (
                 <option key={extension} value={extension} />
               ))}
             </datalist>
@@ -2549,6 +2637,7 @@ function SmartFolderValueControl({
     return (
       <select value={String(condition.value)} onChange={(event) => onChange({ ...condition, value: event.target.value })}>
         <option value="image">image</option>
+        <option value="video">video</option>
       </select>
     );
   }
@@ -2743,6 +2832,8 @@ function Inspector(): JSX.Element {
   const restoreSelection = useRefForgeStore((state) => state.restoreSelection);
   const permanentlyDeleteSelection = useRefForgeStore((state) => state.permanentlyDeleteSelection);
   const openViewer = useRefForgeStore((state) => state.openViewer);
+  const assetFilters = useRefForgeStore((state) => state.assetFilters);
+  const setAssetFilters = useRefForgeStore((state) => state.setAssetFilters);
   const savingAssetIds = useRefForgeStore((state) => state.savingAssetIds);
   const lastSavedAt = useRefForgeStore((state) => state.lastSavedAt);
   const [draft, setDraft] = useState({ title: '', memo: '', sourceUrl: '' });
@@ -2778,11 +2869,12 @@ function Inspector(): JSX.Element {
     : lastSavedAt
       ? t('status.savedAt', { time: formatDateTime(lastSavedAt, i18nInstance.language) })
       : t('status.saved');
+  const previewUrl = getSafePreviewUrl(asset, 'inspector');
 
   return (
     <aside className={styles.inspector}>
       <button className={styles.preview} title={t('viewer.open')} onClick={() => openViewer(asset.id)}>
-        <img src={asset.storedFileUrl} alt={asset.title} />
+        {previewUrl ? <img src={previewUrl} alt={asset.title} /> : <Image size={34} />}
       </button>
 
       <section className={styles.inspectorSection}>
@@ -2878,6 +2970,16 @@ function Inspector(): JSX.Element {
           <div>
             <dt>{t('inspector.type')}</dt>
             <dd>{asset.mimeType ?? asset.extension}</dd>
+          </div>
+          {asset.durationMs ? (
+            <div>
+              <dt>{t('inspector.duration')}</dt>
+              <dd>{formatDuration(asset.durationMs, i18nInstance.language, t)}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt>{t('inspector.previewStatus')}</dt>
+            <dd>{t(`media.status.${asset.thumbnailStatus}`, { defaultValue: asset.thumbnailStatus })}</dd>
           </div>
           <div>
             <dt>{t('inspector.hash')}</dt>
@@ -2989,7 +3091,18 @@ function Inspector(): JSX.Element {
         <h3>{t('inspector.palette')}</h3>
         <div className={styles.palette}>
           {asset.colors.map((color) => (
-            <span key={color.id} title={color.color} style={{ background: color.color }} />
+            <button
+              key={color.id}
+              type="button"
+              title={t('filter.applyColor', { color: color.color })}
+              style={{ background: color.color }}
+              onClick={() =>
+                void setAssetFilters({
+                  ...assetFilters,
+                  color: { hex: color.color, tolerance: assetFilters.color?.tolerance ?? 56, minRatio: 0.01 }
+                })
+              }
+            />
           ))}
         </div>
       </section>
@@ -3357,6 +3470,7 @@ function ImageViewer(): JSX.Element | null {
     event.preventDefault();
     setDragStart({ x: event.clientX, y: event.clientY, originX: offset.x, originY: offset.y });
   };
+  const viewerSource = getSafePreviewUrl(asset, 'viewer');
 
   return (
     <div className={styles.viewerBackdrop} onClick={closeViewer}>
@@ -3404,14 +3518,14 @@ function ImageViewer(): JSX.Element | null {
             <ChevronLeft size={22} />
           </button>
           <div className={styles.viewerCanvas}>
-            {imageFailed ? (
+            {imageFailed || !viewerSource ? (
               <div className={styles.viewerFallback}>
                 <Image size={34} />
                 <span>{t('viewer.loadingFailed')}</span>
               </div>
             ) : (
               <img
-                src={asset.storedFileUrl}
+                src={viewerSource}
                 alt={asset.title}
                 draggable={false}
                 className={styles.viewerImage}
@@ -3575,6 +3689,8 @@ function ImportStatus(): JSX.Element | null {
     .filter((item) => item.status === 'duplicate')
     .map((item) => item.sourcePath) ?? [];
   const issueItems = summary?.items.filter((item) => item.status !== 'imported') ?? [];
+  const warningItems = summary?.items.filter((item) => item.warnings && item.warnings.length > 0) ?? [];
+  const visibleIssueItems = [...issueItems, ...warningItems.filter((item) => item.status === 'imported')];
 
   return (
     <div className={styles.importStatus}>
@@ -3611,16 +3727,17 @@ function ImportStatus(): JSX.Element | null {
           {t('import.importDuplicatesAnyway')}
         </button>
       ) : null}
-      {issueItems.length > 0 ? (
+      {visibleIssueItems.length > 0 ? (
         <div className={styles.importIssues}>
-          {issueItems.slice(0, 8).map((item) => (
+          {visibleIssueItems.slice(0, 8).map((item) => (
             <div key={`${item.sourcePath}-${item.status}`}>
-              <strong>{t(`fileStatus.${item.status}`)}</strong>
+              <strong>{item.status === 'imported' ? t('fileStatus.warning') : t(`fileStatus.${item.status}`)}</strong>
               <span title={item.sourcePath}>{fileBaseName(item.sourcePath)}</span>
               {item.error ? <small>{item.error}</small> : null}
+              {item.warnings?.length ? <small>{item.warnings.join(' / ')}</small> : null}
             </div>
           ))}
-          {issueItems.length > 8 ? <small>{t('import.moreIssues', { count: issueItems.length - 8 })}</small> : null}
+          {visibleIssueItems.length > 8 ? <small>{t('import.moreIssues', { count: visibleIssueItems.length - 8 })}</small> : null}
         </div>
       ) : null}
     </div>
@@ -3632,12 +3749,16 @@ function ExportDialog({ onClose }: { onClose: () => void }): JSX.Element {
   const selectedIds = useRefForgeStore((state) => state.selectedIds);
   const collections = useRefForgeStore((state) => state.collections);
   const exportPresets = useRefForgeStore((state) => state.exportPresets);
+  const exportTemplates = useRefForgeStore((state) => state.exportTemplates);
   const createExport = useRefForgeStore((state) => state.createExport);
   const lastExport = useRefForgeStore((state) => state.lastExport);
   const openPath = useRefForgeStore((state) => state.openPath);
   const defaultPreset = exportPresets[0] ?? null;
+  const defaultTemplate = exportTemplates[0] ?? null;
+  const [templateEditorOpen, setTemplateEditorOpen] = useState(false);
   const [form, setForm] = useState<ExportInput>({
     presetId: defaultPreset?.id,
+    templateId: defaultTemplate?.id,
     name: 'reference-pack',
     goal: defaultPreset?.defaultGoal ?? '',
     commonTraits: '',
@@ -3653,6 +3774,12 @@ function ExportDialog({ onClose }: { onClose: () => void }): JSX.Element {
     () => collections.find((collection) => collection.id === form.collectionId) ?? null,
     [collections, form.collectionId]
   );
+
+  useEffect(() => {
+    if (!form.templateId && exportTemplates[0]) {
+      setForm((current) => ({ ...current, templateId: exportTemplates[0].id }));
+    }
+  }, [exportTemplates, form.templateId]);
 
   return (
     <div className={styles.modalBackdrop}>
@@ -3688,6 +3815,28 @@ function ExportDialog({ onClose }: { onClose: () => void }): JSX.Element {
               </option>
             ))}
           </select>
+        </label>
+
+        <label>
+          {t('export:template')}
+          <span className={styles.inlineFieldWithButton}>
+            <select
+              value={form.templateId ?? ''}
+              onChange={(event) => {
+                const template = exportTemplates.find((candidate) => candidate.id === event.target.value) ?? null;
+                setForm((current) => applyTemplateToForm({ ...current, templateId: event.target.value || undefined }, template));
+              }}
+            >
+              {exportTemplates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.isBuiltin ? t('export:builtinTemplateName', { name: template.name }) : template.name}
+                </option>
+              ))}
+            </select>
+            <button type="button" title={t('export:templateManager')} onClick={() => setTemplateEditorOpen(true)}>
+              <FileImage size={15} />
+            </button>
+          </span>
         </label>
 
         <label>
@@ -3736,6 +3885,7 @@ function ExportDialog({ onClose }: { onClose: () => void }): JSX.Element {
             <div>
               <strong>{t('export:createdRefs', { count: lastExport.assetCount })}</strong>
               <span>{lastExport.markdownPath}</span>
+              {lastExport.warnings?.length ? <small>{lastExport.warnings.join(' / ')}</small> : null}
             </div>
             <button type="button" className={styles.secondaryButton} onClick={() => void openPath(lastExport.exportPath)}>
               <FolderOpen size={16} />
@@ -3753,7 +3903,250 @@ function ExportDialog({ onClose }: { onClose: () => void }): JSX.Element {
             {t('export:export')}
           </button>
         </div>
+        {templateEditorOpen ? (
+          <ExportTemplateManagerDialog
+            onClose={() => setTemplateEditorOpen(false)}
+            previewInput={{ ...form, assetIds: selectedIds }}
+            onUseTemplate={(template) => {
+              setForm((current) => applyTemplateToForm({ ...current, templateId: template.id }, template));
+              setTemplateEditorOpen(false);
+            }}
+          />
+        ) : null}
       </form>
+    </div>
+  );
+}
+
+function ExportTemplateManagerDialog({
+  onClose,
+  previewInput,
+  onUseTemplate
+}: {
+  onClose: () => void;
+  previewInput: ExportInput;
+  onUseTemplate: (template: ExportTemplateRecord) => void;
+}): JSX.Element {
+  const { t } = useTranslation(['export', 'common']);
+  const exportTemplates = useRefForgeStore((state) => state.exportTemplates);
+  const saveExportTemplate = useRefForgeStore((state) => state.saveExportTemplate);
+  const deleteExportTemplate = useRefForgeStore((state) => state.deleteExportTemplate);
+  const previewExportTemplate = useRefForgeStore((state) => state.previewExportTemplate);
+  const [selectedId, setSelectedId] = useState(exportTemplates[0]?.id ?? '');
+  const selectedTemplate = exportTemplates.find((template) => template.id === selectedId) ?? exportTemplates[0] ?? null;
+  const [draft, setDraft] = useState(() => createTemplateDraft(selectedTemplate));
+  const [preview, setPreview] = useState<{ markdown: string; warnings: string[] } | null>(null);
+  const isReadOnly = draft.isBuiltin;
+
+  useEffect(() => {
+    setDraft(createTemplateDraft(selectedTemplate));
+    setPreview(null);
+  }, [selectedTemplate]);
+
+  const updateSection = (sectionId: string, updater: (section: ExportTemplateSection) => ExportTemplateSection): void => {
+    setDraft((current) => ({
+      ...current,
+      template: {
+        ...current.template,
+        sections: current.template.sections.map((section) => (section.id === sectionId ? updater(section) : section))
+      }
+    }));
+  };
+
+  return (
+    <div className={styles.modalBackdrop}>
+      <section className={styles.templateDialog}>
+        <div className={styles.modalHeader}>
+          <div>
+            <h2>{t('export:templateManager')}</h2>
+            <span>{t('export:templateManagerSubtitle')}</span>
+          </div>
+          <button type="button" title={t('common:actions.close')} onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className={styles.templateManagerLayout}>
+          <div className={styles.templateList}>
+            {exportTemplates.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className={selectedTemplate?.id === template.id ? styles.sideItemActive : styles.sideItem}
+                onClick={() => setSelectedId(template.id)}
+              >
+                {template.isBuiltin ? <FileImage size={16} /> : <FileOutput size={16} />}
+                {template.name}
+                <small>{template.isBuiltin ? t('export:builtin') : t('export:custom')}</small>
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.templateEditor}>
+            <label>
+              {t('export:templateName')}
+              <input
+                value={draft.name}
+                readOnly={isReadOnly}
+                onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+              />
+            </label>
+            <label>
+              {t('export:templateDescription')}
+              <input
+                value={draft.description}
+                readOnly={isReadOnly}
+                onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+              />
+            </label>
+            <label>
+              {t('export:templateOutputFile')}
+              <input
+                value={draft.template.defaults.outputFileName ?? ''}
+                readOnly={isReadOnly}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    template: {
+                      ...current.template,
+                      defaults: { ...current.template.defaults, outputFileName: event.target.value }
+                    }
+                  }))
+                }
+              />
+            </label>
+
+            <div className={styles.templateSections}>
+              {draft.template.sections.map((section) => (
+                <div key={section.id} className={styles.templateSectionEditor}>
+                  <label className={styles.checkControl}>
+                    <input
+                      type="checkbox"
+                      checked={section.enabled}
+                      disabled={isReadOnly}
+                      onChange={(event) => updateSection(section.id, (current) => ({ ...current, enabled: event.target.checked }))}
+                    />
+                    {t('export:sectionEnabled')}
+                  </label>
+                  <input
+                    value={section.name}
+                    readOnly={isReadOnly}
+                    onChange={(event) => updateSection(section.id, (current) => ({ ...current, name: event.target.value }))}
+                  />
+                  <textarea
+                    value={section.body}
+                    readOnly={isReadOnly}
+                    rows={4}
+                    onChange={(event) => updateSection(section.id, (current) => ({ ...current, body: event.target.value }))}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {preview ? (
+              <div className={styles.templatePreview}>
+                {preview.warnings.length > 0 ? <small>{preview.warnings.join(' / ')}</small> : null}
+                <textarea value={preview.markdown} readOnly rows={8} />
+              </div>
+            ) : null}
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    id: undefined,
+                    name: t('export:copyName', { name: current.name }),
+                    isBuiltin: false
+                  }))
+                }
+              >
+                <Copy size={15} />
+                {t('export:duplicateTemplate')}
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                disabled={isReadOnly}
+                onClick={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    template: {
+                      ...current.template,
+                      sections: [
+                        ...current.template.sections,
+                        {
+                          id: `section-${Date.now()}`,
+                          name: t('export:newSection'),
+                          body: '{{assetList}}',
+                          enabled: true
+                        }
+                      ]
+                    }
+                  }))
+                }
+              >
+                <Plus size={15} />
+                {t('export:addSection')}
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={async () => {
+                  const result = await previewExportTemplate({
+                    template: draft.template,
+                    input: { ...previewInput, outputFileName: draft.template.defaults.outputFileName || previewInput.outputFileName }
+                  });
+                  setPreview(result);
+                }}
+              >
+                <Eye size={15} />
+                {t('export:preview')}
+              </button>
+              <button type="button" className={styles.secondaryButton} disabled={!selectedTemplate} onClick={() => selectedTemplate && onUseTemplate(selectedTemplate)}>
+                <Check size={15} />
+                {t('export:useTemplate')}
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                disabled={isReadOnly || !draft.id}
+                onClick={() => {
+                  if (draft.id && window.confirm(t('export:confirmDeleteTemplate', { name: draft.name }))) {
+                    void deleteExportTemplate(draft.id);
+                    setSelectedId(exportTemplates[0]?.id ?? '');
+                  }
+                }}
+              >
+                <Trash2 size={15} />
+                {t('common:actions.delete')}
+              </button>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                disabled={isReadOnly || !draft.name.trim()}
+                onClick={async () => {
+                  const saved = await saveExportTemplate({
+                    id: draft.id,
+                    name: draft.name,
+                    description: draft.description,
+                    template: draft.template
+                  });
+                  if (saved) {
+                    setSelectedId(saved.id);
+                    onUseTemplate(saved);
+                  }
+                }}
+              >
+                <Check size={15} />
+                {t('export:saveTemplate')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -3872,7 +4265,7 @@ function SettingsDialog({ onClose }: { onClose: () => void }): JSX.Element {
         <section className={styles.inspectorSection}>
           <h3>{t('settings:supportedExtensions')}</h3>
           <div className={styles.tagCloud}>
-            {config?.supportedImageExtensions.map((extension) => (
+            {[...(config?.supportedImageExtensions ?? []), ...(config?.supportedVideoExtensions ?? [])].map((extension) => (
               <span key={extension} className={styles.readOnlyPill}>.{extension}</span>
             ))}
           </div>
@@ -3928,6 +4321,70 @@ function applyPresetToForm(current: ExportInput, preset: ExportPreset | null): E
     instructions: current.instructions.trim() ? current.instructions : preset.defaultApplyInstructions,
     constraints: current.constraints.trim() ? current.constraints : preset.defaultForbiddenRules,
     outputFileName: current.outputFileName?.trim() ? current.outputFileName : preset.outputFileName
+  };
+}
+
+type ExportTemplateDraft = {
+  id?: string;
+  name: string;
+  description: string;
+  isBuiltin: boolean;
+  template: ExportTemplateDefinition;
+};
+
+function createTemplateDraft(template: ExportTemplateRecord | null): ExportTemplateDraft {
+  if (!template) {
+    return {
+      name: 'Custom template',
+      description: '',
+      isBuiltin: false,
+      template: createDefaultExportTemplateDefinition()
+    };
+  }
+  return {
+    id: template.isBuiltin ? undefined : template.id,
+    name: template.name,
+    description: template.description,
+    isBuiltin: template.isBuiltin,
+    template: cloneExportTemplateDefinition(template.template)
+  };
+}
+
+function createDefaultExportTemplateDefinition(): ExportTemplateDefinition {
+  return {
+    defaults: {
+      outputFileName: 'instruction.md'
+    },
+    sections: [
+      { id: 'goal', name: 'Goal', enabled: true, body: '{{goal}}' },
+      { id: 'references', name: 'References', enabled: true, body: '{{references}}' },
+      { id: 'asset-notes', name: 'Asset Notes', enabled: true, body: '{{assetNotes}}' },
+      { id: 'instructions', name: 'Instructions', enabled: true, body: '{{applyInstructions}}\n\n{{forbiddenRules}}' }
+    ]
+  };
+}
+
+function cloneExportTemplateDefinition(template: ExportTemplateDefinition): ExportTemplateDefinition {
+  return {
+    defaults: { ...template.defaults },
+    sections: template.sections.map((section) => ({ ...section }))
+  };
+}
+
+function applyTemplateToForm(current: ExportInput, template: ExportTemplateRecord | null): ExportInput {
+  if (!template) {
+    return current;
+  }
+  return {
+    ...current,
+    templateId: template.id,
+    goal: current.goal.trim() ? current.goal : template.template.defaults.goal ?? current.goal,
+    commonTraits: current.commonTraits.trim() ? current.commonTraits : template.template.defaults.commonTraits ?? current.commonTraits,
+    instructions: current.instructions.trim() ? current.instructions : template.template.defaults.applyInstructions ?? current.instructions,
+    constraints: current.constraints.trim() ? current.constraints : template.template.defaults.forbiddenRules ?? current.constraints,
+    outputFileName: current.outputFileName?.trim()
+      ? current.outputFileName
+      : template.template.defaults.outputFileName || current.outputFileName
   };
 }
 
@@ -4233,8 +4690,10 @@ function parseCsv(value: string): string[] {
 }
 
 function normalizeAssetFilters(filters: AssetFilters): AssetFilters {
+  const normalizedColor = normalizeColorFilter(filters.color);
   return {
     ...filters,
+    color: normalizedColor,
     extensions: filters.extensions?.filter(Boolean),
     includeTagIds: filters.includeTagIds?.filter(Boolean),
     excludeTagIds: filters.excludeTagIds?.filter(Boolean),
@@ -4245,10 +4704,31 @@ function normalizeAssetFilters(filters: AssetFilters): AssetFilters {
   };
 }
 
+function normalizeColorFilter(color: AssetFilters['color']): AssetFilters['color'] {
+  if (!color) {
+    return null;
+  }
+  const match = /^#?([0-9a-f]{6})$/iu.exec(color.hex.trim());
+  if (!match) {
+    return null;
+  }
+  return {
+    hex: `#${match[1].toLowerCase()}`,
+    tolerance: clampNumber(Number(color.tolerance) || 56, 0, 441),
+    minRatio: typeof color.minRatio === 'number' && color.minRatio > 0 ? color.minRatio : 0
+  };
+}
+
+function toColorInputValue(value: string | undefined): string {
+  const match = value ? /^#?([0-9a-f]{6})$/iu.exec(value.trim()) : null;
+  return match ? `#${match[1].toLowerCase()}` : '#78dcca';
+}
+
 function countAssetFilters(filters: AssetFilters): number {
   return [
     filters.mediaTypes?.length,
     filters.extensions?.length,
+    filters.color,
     filters.favoriteOnly,
     filters.minRating,
     filters.includeTagIds?.length,
@@ -4302,6 +4782,37 @@ function greatestCommonDivisor(left: number, right: number): number {
 
 function fileBaseName(filePath: string): string {
   return filePath.split(/[\\/]/u).pop() ?? filePath;
+}
+
+function getAssetMediaBadges(asset: AssetRecord, t: TFunction<'common'>): string[] {
+  const badges: string[] = [];
+  if (asset.mediaType === 'video') {
+    badges.push(t('media.video'));
+  }
+  if (asset.extension.toLowerCase() === 'svg') {
+    badges.push(t('media.svg'));
+  }
+  if (asset.isAnimated || asset.extension.toLowerCase() === 'gif') {
+    badges.push(t('media.animated'));
+  }
+  if (asset.thumbnailStatus !== 'ready') {
+    badges.push(t(`media.status.${asset.thumbnailStatus}`, { defaultValue: asset.thumbnailStatus }));
+  }
+  return badges;
+}
+
+function getSafePreviewUrl(asset: AssetRecord, surface: 'viewer' | 'inspector'): string | null {
+  const extension = asset.extension.toLowerCase();
+  if (surface === 'viewer' && extension === 'gif') {
+    return asset.storedFileUrl;
+  }
+  if (extension === 'svg' || asset.mediaType === 'video') {
+    return asset.previewUrl ?? asset.thumbnailUrl;
+  }
+  if (surface === 'inspector') {
+    return asset.previewUrl ?? asset.thumbnailUrl ?? asset.storedFileUrl;
+  }
+  return asset.previewUrl ?? asset.storedFileUrl;
 }
 
 function isEditableElement(target: EventTarget | null): boolean {

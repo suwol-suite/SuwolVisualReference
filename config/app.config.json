@@ -8,10 +8,8 @@
   "autoDuplicateCheck": true,
   "autoColorAnalysis": true,
   "supportedImageExtensions": ["png", "jpg", "jpeg", "webp", "gif", "svg"],
+  "supportedVideoExtensions": ["mp4", "webm", "mov"],
   "placeholderExtensions": [
-    "mp4",
-    "webm",
-    "mov",
     "mp3",
     "wav",
     "ogg",

@@ -84,8 +84,16 @@ The smoke test now exercises the organization query surface on a generated tempo
 
 The smoke test also verifies collection reorder persistence and smart folder update/preview behavior on generated fixtures.
 
+## 2026-07-05 Media And Template Check
+
+The smoke test now imports generated PNG, SVG, GIF, and invalid MP4 fixtures. SVG/GIF preview generation is verified without requiring external tools. The invalid MP4 fixture verifies that optional ffprobe/ffmpeg failure records warnings and placeholder media state without failing the batch.
+
+Palette color filtering is covered through the `asset_colors` RGB channel query. The SQL comparison uses a bounded Euclidean distance and an indexed RGB channel table, while renderer input is normalized before IPC.
+
+Custom export template creation, preview rendering, unknown placeholder warnings, and template-backed export are covered in the same smoke run. This does not add renderer filesystem access.
+
 ## Remaining Bottlenecks
 
 - Infinite pagination prevents initial DOM overload, but a very long browsing session can still accumulate many loaded cards. A true virtual grid remains a future upgrade if this becomes visible in manual use.
 - Asset mapping still loads tags, collections, and colors per returned asset. The 500-row page size keeps this acceptable, but a batched relation loader would be the next DB optimization.
-- Thumbnail generation remains the dominant import cost; this work did not change import concurrency or Sharp processing.
+- Thumbnail generation remains the dominant import cost. Video thumbnail extraction is optional, external-ffmpeg-only, timeout-bounded, and concurrency-limited separately from the normal import worker pool.

@@ -16,6 +16,10 @@ import type {
   ExportInput,
   ExportPreset,
   ExportResult,
+  ExportTemplatePreviewInput,
+  ExportTemplatePreviewResult,
+  ExportTemplateRecord,
+  ExportTemplateSaveInput,
   ImportBatchRecord,
   ImportSummary,
   LibrarySummary,
@@ -53,6 +57,7 @@ type RefForgeState = {
   importBatches: ImportBatchRecord[];
   duplicateGroups: DuplicateGroup[];
   exportPresets: ExportPreset[];
+  exportTemplates: ExportTemplateRecord[];
   languagePreference: LanguagePreference;
   selectedIds: string[];
   activeAssetId: string | null;
@@ -147,6 +152,9 @@ type RefForgeState = {
   updateSmartFolder: (input: SmartFolderUpdateInput) => Promise<void>;
   deleteSmartFolder: (id: string) => Promise<void>;
   previewSmartFolderCount: (query: SmartFolderQuery) => Promise<number | null>;
+  saveExportTemplate: (input: ExportTemplateSaveInput) => Promise<ExportTemplateRecord | null>;
+  deleteExportTemplate: (id: string) => Promise<void>;
+  previewExportTemplate: (input: ExportTemplatePreviewInput) => Promise<ExportTemplatePreviewResult | null>;
   createExport: (input: ExportInput) => Promise<void>;
   openPath: (targetPath: string) => Promise<void>;
   dismissImportSummary: () => void;
@@ -170,6 +178,7 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
   importBatches: [],
   duplicateGroups: [],
   exportPresets: [],
+  exportTemplates: [],
   languagePreference: getStoredLanguagePreference(),
   selectedIds: [],
   activeAssetId: null,
@@ -302,15 +311,16 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
   },
 
   loadMetadata: async () => {
-    const [library, tags, collections, smartFolders, importBatches, exportPresets] = await Promise.all([
+    const [library, tags, collections, smartFolders, importBatches, exportPresets, exportTemplates] = await Promise.all([
       window.refForge.getActiveLibrary(),
       window.refForge.listTags(),
       window.refForge.listCollections(),
       window.refForge.listSmartFolders(),
       window.refForge.listImportBatches(),
-      window.refForge.listExportPresets(getActiveLanguage())
+      window.refForge.listExportPresets(getActiveLanguage()),
+      window.refForge.listExportTemplates(getActiveLanguage())
     ]);
-    set({ library, tags, collections, smartFolders, importBatches, exportPresets });
+    set({ library, tags, collections, smartFolders, importBatches, exportPresets, exportTemplates });
   },
 
   loadAssets: async (options) => {
@@ -1081,6 +1091,35 @@ export const useRefForgeStore = create<RefForgeState>((set, get) => ({
   previewSmartFolderCount: async (query) => {
     try {
       return await window.refForge.previewSmartFolderCount(query);
+    } catch (error) {
+      set({ error: toMessage(error) });
+      return null;
+    }
+  },
+
+  saveExportTemplate: async (input) => {
+    try {
+      const template = await window.refForge.saveExportTemplate(input);
+      await get().loadMetadata();
+      return template;
+    } catch (error) {
+      set({ error: toMessage(error) });
+      return null;
+    }
+  },
+
+  deleteExportTemplate: async (id) => {
+    try {
+      await window.refForge.deleteExportTemplate(id);
+      await get().loadMetadata();
+    } catch (error) {
+      set({ error: toMessage(error) });
+    }
+  },
+
+  previewExportTemplate: async (input) => {
+    try {
+      return await window.refForge.previewExportTemplate(input);
     } catch (error) {
       set({ error: toMessage(error) });
       return null;

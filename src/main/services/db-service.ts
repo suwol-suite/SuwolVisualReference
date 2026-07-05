@@ -22,6 +22,9 @@ import type {
   DuplicateMergeInput,
   DuplicateResolutionInput,
   DuplicateResolutionStatus,
+  ExportTemplateDefinition,
+  ExportTemplateRecord,
+  ExportTemplateSaveInput,
   ImportBatchRecord,
   ImportMetrics,
   LibraryManifest,
@@ -53,6 +56,11 @@ type AssetRow = {
   width: number | null;
   height: number | null;
   duration_ms: number | null;
+  is_animated: number;
+  has_transparency: number;
+  thumbnail_status: string;
+  preview_status: string;
+  analysis_status: string;
   hash: string;
   perceptual_hash: string | null;
   rating: number;
@@ -99,6 +107,9 @@ type AssetColorRow = {
   id: string;
   asset_id: string;
   color: string;
+  red: number | null;
+  green: number | null;
+  blue: number | null;
   population: number;
   sort_order: number;
 };
@@ -128,6 +139,17 @@ type SmartFolderRow = {
   updated_at: string;
 };
 
+type ExportTemplateRow = {
+  id: string;
+  library_id: string;
+  name: string;
+  description: string;
+  format: string;
+  template_json: string;
+  created_at: string;
+  updated_at: string;
+};
+
 type AssetQueryParts = {
   whereSql: string;
   params: Record<string, unknown>;
@@ -151,6 +173,11 @@ export type InsertAssetInput = {
   width: number | null;
   height: number | null;
   durationMs: number | null;
+  isAnimated: boolean;
+  hasTransparency: boolean;
+  thumbnailStatus: string;
+  previewStatus: string;
+  analysisStatus: string;
   hash: string;
   perceptualHash: string | null;
   rating: number;
@@ -183,6 +210,7 @@ export class LibraryDatabase {
 
   initialize(defaultTags: DefaultTag[]): void {
     this.migrate();
+    this.backfillColorChannels();
     this.upsertLibrary();
     this.seedDefaultTags(defaultTags);
   }
@@ -305,6 +333,30 @@ export class LibraryDatabase {
 
     appendListFilter(where, params, 'mediaType', 'a.media_type', filters.mediaTypes);
     appendListFilter(where, params, 'extension', 'a.extension', filters.extensions);
+
+    const colorFilter = filters.color ? parseHexColor(filters.color.hex) : null;
+    if (colorFilter) {
+      const tolerance = Math.max(0, Math.min(441, Number(filters.color?.tolerance ?? 48)));
+      params.colorRed = colorFilter.red;
+      params.colorGreen = colorFilter.green;
+      params.colorBlue = colorFilter.blue;
+      params.colorDistanceSquared = tolerance * tolerance;
+      params.colorMinPopulation = Math.max(0, Math.floor((filters.color?.minRatio ?? 0) * 72 * 72));
+      where.push(`EXISTS (
+        SELECT 1
+        FROM asset_colors color_filter
+        WHERE color_filter.asset_id = a.id
+          AND color_filter.red IS NOT NULL
+          AND color_filter.green IS NOT NULL
+          AND color_filter.blue IS NOT NULL
+          AND color_filter.population >= @colorMinPopulation
+          AND (
+            ((color_filter.red - @colorRed) * (color_filter.red - @colorRed)) +
+            ((color_filter.green - @colorGreen) * (color_filter.green - @colorGreen)) +
+            ((color_filter.blue - @colorBlue) * (color_filter.blue - @colorBlue))
+          ) <= @colorDistanceSquared
+      )`);
+    }
 
     if (typeof filters.minRating === 'number' && Number.isFinite(filters.minRating)) {
       params.minRating = Math.max(0, Math.min(5, filters.minRating));
@@ -450,18 +502,25 @@ export class LibraryDatabase {
           `INSERT INTO assets (
             id, library_id, title, original_file_name, stored_file_path, thumbnail_path, preview_path,
             media_type, mime_type, extension, size_bytes, width, height, duration_ms, hash, perceptual_hash,
+            is_animated, has_transparency, thumbnail_status, preview_status, analysis_status,
             rating, memo, source_url, is_favorite, is_deleted, original_relative_path, import_batch_id,
             deleted_at, permanently_deleted_at, created_at, updated_at, imported_at
           )
           VALUES (
             @id, @libraryId, @title, @originalFileName, @storedFilePath, @thumbnailPath, @previewPath,
             @mediaType, @mimeType, @extension, @sizeBytes, @width, @height, @durationMs, @hash, @perceptualHash,
+            @isAnimated, @hasTransparency, @thumbnailStatus, @previewStatus, @analysisStatus,
             @rating, @memo, @sourceUrl, @isFavorite, @isDeleted, @originalRelativePath, @importBatchId,
             @deletedAt, @permanentlyDeletedAt, @createdAt, @updatedAt, @importedAt
           )`
         )
         .run({
           ...input,
+          isAnimated: input.isAnimated ? 1 : 0,
+          hasTransparency: input.hasTransparency ? 1 : 0,
+          thumbnailStatus: input.thumbnailStatus || 'none',
+          previewStatus: input.previewStatus || 'none',
+          analysisStatus: input.analysisStatus || 'ready',
           isFavorite: input.isFavorite ? 1 : 0,
           isDeleted: input.isDeleted ? 1 : 0,
           originalRelativePath: input.originalRelativePath ?? null,
@@ -471,15 +530,19 @@ export class LibraryDatabase {
         });
 
       const colorStatement = this.db.prepare(
-        `INSERT INTO asset_colors (id, asset_id, color, population, sort_order)
-         VALUES (@id, @assetId, @color, @population, @sortOrder)`
+        `INSERT INTO asset_colors (id, asset_id, color, red, green, blue, population, sort_order)
+         VALUES (@id, @assetId, @color, @red, @green, @blue, @population, @sortOrder)`
       );
 
       for (const color of input.colors) {
+        const rgb = parseHexColor(color.color);
         colorStatement.run({
           id: crypto.randomUUID(),
           assetId: input.id,
           color: color.color,
+          red: rgb?.red ?? null,
+          green: rgb?.green ?? null,
+          blue: rgb?.blue ?? null,
           population: color.population,
           sortOrder: color.sortOrder
         });
@@ -1505,6 +1568,84 @@ export class LibraryDatabase {
       .run(crypto.randomUUID(), name, outputPath, assetCount, status, new Date().toISOString());
   }
 
+  listExportTemplates(): ExportTemplateRecord[] {
+    const rows = this.db
+      .prepare(
+        `SELECT *
+         FROM export_templates
+         WHERE library_id = ?
+         ORDER BY updated_at DESC, name ASC`
+      )
+      .all(this.manifest.libraryId) as ExportTemplateRow[];
+    return rows.map(mapExportTemplate);
+  }
+
+  getExportTemplate(id: string): ExportTemplateRecord | null {
+    const row = this.db
+      .prepare(
+        `SELECT *
+         FROM export_templates
+         WHERE id = ? AND library_id = ?
+         LIMIT 1`
+      )
+      .get(id, this.manifest.libraryId) as ExportTemplateRow | undefined;
+    return row ? mapExportTemplate(row) : null;
+  }
+
+  saveExportTemplate(input: ExportTemplateSaveInput): ExportTemplateRecord {
+    const now = new Date().toISOString();
+    const id = input.id ?? crypto.randomUUID();
+    const template = normalizeExportTemplateDefinition(input.template);
+    const existing = input.id ? this.getExportTemplate(input.id) : null;
+
+    if (existing) {
+      this.db
+        .prepare(
+          `UPDATE export_templates
+           SET name = @name,
+               description = @description,
+               template_json = @templateJson,
+               updated_at = @updatedAt
+           WHERE id = @id AND library_id = @libraryId`
+        )
+        .run({
+          id,
+          libraryId: this.manifest.libraryId,
+          name: input.name.trim() || 'Custom template',
+          description: input.description ?? '',
+          templateJson: JSON.stringify(template),
+          updatedAt: now
+        });
+    } else {
+      this.db
+        .prepare(
+          `INSERT INTO export_templates (
+            id, library_id, name, description, format, template_json, created_at, updated_at
+          )
+          VALUES (@id, @libraryId, @name, @description, 'codex-markdown', @templateJson, @createdAt, @updatedAt)`
+        )
+        .run({
+          id,
+          libraryId: this.manifest.libraryId,
+          name: input.name.trim() || 'Custom template',
+          description: input.description ?? '',
+          templateJson: JSON.stringify(template),
+          createdAt: now,
+          updatedAt: now
+        });
+    }
+
+    const saved = this.getExportTemplate(id);
+    if (!saved) {
+      throw new Error('Export template save failed.');
+    }
+    return saved;
+  }
+
+  deleteExportTemplate(id: string): void {
+    this.db.prepare('DELETE FROM export_templates WHERE id = ? AND library_id = ?').run(id, this.manifest.libraryId);
+  }
+
   resolvePath(relativePath: string): string {
     return fromLibraryRelative(this.rootPath, relativePath);
   }
@@ -1532,6 +1673,30 @@ export class LibraryDatabase {
       });
       applyMigration();
     }
+  }
+
+  private backfillColorChannels(): void {
+    const rows = this.db
+      .prepare(
+        `SELECT id, color
+         FROM asset_colors
+         WHERE red IS NULL OR green IS NULL OR blue IS NULL`
+      )
+      .all() as Array<{ id: string; color: string }>;
+    if (rows.length === 0) {
+      return;
+    }
+
+    const update = this.db.prepare('UPDATE asset_colors SET red = ?, green = ?, blue = ? WHERE id = ?');
+    const transaction = this.db.transaction(() => {
+      for (const row of rows) {
+        const rgb = parseHexColor(row.color);
+        if (rgb) {
+          update.run(rgb.red, rgb.green, rgb.blue, row.id);
+        }
+      }
+    });
+    transaction();
   }
 
   private upsertLibrary(): void {
@@ -1761,6 +1926,11 @@ export class LibraryDatabase {
       width: row.width,
       height: row.height,
       durationMs: row.duration_ms,
+      isAnimated: Boolean(row.is_animated),
+      hasTransparency: Boolean(row.has_transparency),
+      thumbnailStatus: row.thumbnail_status,
+      previewStatus: row.preview_status,
+      analysisStatus: row.analysis_status,
       hash: row.hash,
       perceptualHash: row.perceptual_hash,
       rating: row.rating,
@@ -1922,10 +2092,14 @@ function mapCollection(row: CollectionRow, rootPath?: string): CollectionRecord 
 }
 
 function mapColor(row: AssetColorRow): AssetColor {
+  const parsed = row.red === null || row.green === null || row.blue === null ? parseHexColor(row.color) : null;
   return {
     id: row.id,
     assetId: row.asset_id,
     color: row.color,
+    red: row.red ?? parsed?.red ?? null,
+    green: row.green ?? parsed?.green ?? null,
+    blue: row.blue ?? parsed?.blue ?? null,
     population: row.population,
     sortOrder: row.sort_order
   };
@@ -1957,6 +2131,44 @@ function mapSmartFolder(row: SmartFolderRow, fallbackLibraryId: string): SmartFo
     query: normalizeSmartFolderQuery(parseJsonObject<SmartFolderQuery>(row.query_json, { mode: 'all', conditions: [] })),
     createdAt: row.created_at,
     updatedAt: row.updated_at
+  };
+}
+
+function mapExportTemplate(row: ExportTemplateRow): ExportTemplateRecord {
+  return {
+    id: row.id,
+    libraryId: row.library_id,
+    name: row.name,
+    description: row.description,
+    format: row.format === 'codex-markdown' ? 'codex-markdown' : 'codex-markdown',
+    template: normalizeExportTemplateDefinition(parseJsonObject<ExportTemplateDefinition>(row.template_json, { sections: [], defaults: {} })),
+    isBuiltin: false,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function normalizeExportTemplateDefinition(template: ExportTemplateDefinition): ExportTemplateDefinition {
+  const sections = Array.isArray(template.sections)
+    ? template.sections
+        .map((section, index) => ({
+          id: String(section.id || `section-${index + 1}`),
+          name: String(section.name || section.id || `Section ${index + 1}`),
+          body: String(section.body ?? ''),
+          enabled: section.enabled !== false
+        }))
+        .filter((section) => section.body.trim() || section.name.trim())
+    : [];
+
+  return {
+    sections,
+    defaults: {
+      goal: template.defaults?.goal ?? '',
+      commonTraits: template.defaults?.commonTraits ?? '',
+      applyInstructions: template.defaults?.applyInstructions ?? '',
+      forbiddenRules: template.defaults?.forbiddenRules ?? '',
+      outputFileName: template.defaults?.outputFileName ?? ''
+    }
   };
 }
 
@@ -2025,6 +2237,19 @@ function parseJsonObject<T>(value: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+function parseHexColor(value: string): { red: number; green: number; blue: number } | null {
+  const match = /^#?([0-9a-f]{6})$/iu.exec(value.trim());
+  if (!match) {
+    return null;
+  }
+  const numeric = Number.parseInt(match[1], 16);
+  return {
+    red: (numeric >> 16) & 255,
+    green: (numeric >> 8) & 255,
+    blue: numeric & 255
+  };
 }
 
 function createBatchResult(requestedCount: number): AssetBatchOperationResult {

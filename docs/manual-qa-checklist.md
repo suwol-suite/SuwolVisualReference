@@ -27,6 +27,9 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 
 - [ ] Import a single image file.
 - [ ] Import multiple image files.
+- [ ] Import GIF and confirm the badge appears and the viewer plays the original GIF.
+- [ ] Import SVG and confirm the grid/viewer use a raster preview, not inline SVG.
+- [ ] Import an MP4/WebM/MOV with no ffmpeg configured and confirm import succeeds with a preview warning.
 - [ ] Import a nested folder.
 - [ ] Drag a folder into an open library and confirm nested images import.
 - [ ] Confirm unsupported files are reported without modifying the source folder.
@@ -40,6 +43,7 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Open list column settings, hide/show columns, move a column, resize a column, restore defaults, restart, and confirm settings persist.
 - [ ] Sort by imported date, name, file size, resolution, rating, and extension.
 - [ ] Use advanced filters for extension, rating, included/excluded tag, aspect, dimensions, memo, source URL, recency, favorites, duplicates, and trash/deleted state.
+- [ ] Click a palette swatch and confirm the color filter applies; adjust color tolerance and clear it.
 - [ ] Switch between library, favorites, trash, duplicates, tag, collection, and smart folder views.
 - [ ] Open the filter popover, use Apply and Clear, close it with ESC, and close it by clicking outside.
 
@@ -85,6 +89,7 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 
 - [ ] Export selected assets to Codex Markdown.
 - [ ] Export a collection to Codex Markdown.
+- [ ] Open the export template manager, duplicate a built-in template, edit a custom section, preview it, save it, and export with it.
 - [ ] Confirm exported references use relative paths.
 
 ## Localization

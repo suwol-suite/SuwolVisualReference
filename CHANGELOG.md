@@ -12,12 +12,16 @@
 - Collection cover fallback thumbnails and database indexes for large-library organization queries.
 - Manual collection asset ordering with drag handles and move-to-top/up/down/bottom controls in collection list view.
 - Smart folder manager for create, edit, delete, multi-condition query building, validation, and result count previews.
+- GIF/SVG/video-aware import metadata with first-frame thumbnails where possible, safe raster SVG previews, media badges, and non-fatal thumbnail/analysis warnings.
+- Palette color search backed by RGB palette channels and a renderer color picker/tolerance filter.
+- Custom Codex Markdown export templates with built-in read-only templates, custom create/edit/delete/duplicate, placeholder warnings, and export preview.
 
 ### Changed
 
 - Toolbar and status bar now expose current sort and active filter state.
 - Smart folder condition UI includes media type, width, and height fields.
-- Smoke coverage now checks organization queries, collection covers, collection reorder, smart folder updates, and smart folder previews.
+- Import summary UI now shows per-file warnings when media analysis or preview generation falls back without failing the import.
+- Smoke coverage now checks media fallback import, color filtering, export templates, organization queries, collection covers, collection reorder, smart folder updates, and smart folder previews.
 
 ## 0.1.2 - 2026-07-04
 

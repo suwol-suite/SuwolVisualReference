@@ -19,6 +19,8 @@ import type {
   DuplicateMergeInput,
   DuplicateResolutionInput,
   ExportInput,
+  ExportTemplatePreviewInput,
+  ExportTemplateSaveInput,
   ImportFilesInput,
   ImportFolderInput,
   SmartFolderQuery,
@@ -199,7 +201,7 @@ function registerIpcHandlers(): void {
       buttonLabel: 'Import',
       properties: ['openFile', 'multiSelections'],
       filters: [
-        { name: 'Images', extensions: config.supportedImageExtensions },
+        { name: 'Media', extensions: [...config.supportedImageExtensions, ...config.supportedVideoExtensions] },
         { name: 'All Files', extensions: ['*'] }
       ]
     });
@@ -354,6 +356,16 @@ function registerIpcHandlers(): void {
   });
 
   ipcMain.handle(IPC_CHANNELS.exportPresetsList, (_event, locale?: LocaleCode) => loadExportPresets(locale));
+  ipcMain.handle(IPC_CHANNELS.exportTemplatesList, (_event, locale?: LocaleCode) => exportService.listTemplates(locale));
+  ipcMain.handle(IPC_CHANNELS.exportTemplatesSave, (_event, input: ExportTemplateSaveInput) => {
+    return withErrorCode('EXPORT_FAILED', () => exportService.saveTemplate(input));
+  });
+  ipcMain.handle(IPC_CHANNELS.exportTemplatesDelete, (_event, id: string) => {
+    return withErrorCode('EXPORT_FAILED', () => exportService.deleteTemplate(id));
+  });
+  ipcMain.handle(IPC_CHANNELS.exportTemplatesPreview, (_event, input: ExportTemplatePreviewInput) => {
+    return withErrorCode('EXPORT_FAILED', () => exportService.previewTemplate(input));
+  });
 
   ipcMain.handle(IPC_CHANNELS.exportCreate, (_event, input: ExportInput) => {
     return withErrorCode('EXPORT_FAILED', () => exportService.exportMarkdown(input));
