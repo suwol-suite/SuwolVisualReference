@@ -75,7 +75,7 @@ The main process reads these runtime resources:
 - `build/icon.ico`
 - `build/icon.png`
 
-electron-builder includes `out/**`, `config/**`, `migrations/**`, `assets/brand/**`, `LICENSE`, `THIRD_PARTY_NOTICES.md`, and `package.json` in the app package. Native module folders for `better-sqlite3` and `sharp` are marked for `asarUnpack`.
+electron-builder includes `out/**`, `config/**`, `migrations/**`, `assets/brand/**`, `LICENSE`, `THIRD_PARTY_NOTICES.md`, and `package.json` in the app package. Native module folders for `better-sqlite3`, `sharp`, and Sharp's platform-specific `@img` runtime payloads are marked for `asarUnpack`.
 
 ## Local Windows Commands
 
@@ -139,6 +139,8 @@ npm.cmd run release:checksums
 `scripts/verify-packaged-app.mjs` checks unpacked packaged apps after `electron-builder` creates `release/win-unpacked` or `release/linux-unpacked`. It runs the packaged executable with `--version` only on the matching OS.
 
 On GitHub Actions Ubuntu runners, Chromium can abort packaged Electron verification if `release/linux-unpacked/chrome-sandbox` does not have root ownership and mode 4755. The verifier runs Linux packaged apps with `--no-sandbox` and `ELECTRON_DISABLE_SANDBOX=1` for this verification step only. This CI verification setting is separate from Linux AppImage update behavior and does not change the Windows ZIP or Linux ZIP update policy.
+
+Sharp 0.34 uses platform-specific optional packages under `node_modules/@img`, including libvips payloads. Those files must be unpacked alongside `node_modules/sharp` so the packaged Linux app can load `libvips-cpp.so` during verification and runtime thumbnail work.
 
 The GitHub Actions release workflow verifies each OS package before upload. The publish job then downloads both OS artifacts, runs checksum, release-asset, and ZIP verification scripts against `release-assets/`, signs `checksums.txt` and the versioned checksum file with the `GPG_PRIVATE_KEY_B64` secret, verifies the signatures with `suwol-release-public-key.asc`, and uploads the ZIP/AppImage files, `latest-linux.yml`, checksums, signatures, and public key to GitHub Releases.
 

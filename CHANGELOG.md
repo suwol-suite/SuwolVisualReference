@@ -11,6 +11,7 @@
 - Fixed the Linux release workflow failure during packaged app verification on GitHub Actions Ubuntu runners.
 - Linux packaged app verification now launches Electron with `--no-sandbox` in CI.
 - Linux packaged app verification now sets `ELECTRON_DISABLE_SANDBOX=1` for the verification run.
+- Linux packages now unpack Sharp's `@img` native runtime payloads so packaged verification can load libvips.
 - Kept Windows ZIP, Linux ZIP, Linux AppImage, `latest-linux.yml`, and checksum verification in the release workflow.
 - v0.2.1 supersedes the failed v0.2.0 release workflow run.
 
