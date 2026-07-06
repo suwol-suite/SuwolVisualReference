@@ -50,8 +50,8 @@ Local Windows verification may only have the Windows ZIP. The release workflow v
 ## Tagging
 
 ```powershell
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.2.1
+git push origin v0.2.1
 ```
 
 Tag push starts `.github/workflows/release.yml`.

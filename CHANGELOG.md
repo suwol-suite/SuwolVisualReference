@@ -4,6 +4,16 @@
 
 - No unreleased changes.
 
+## 0.2.1 - 2026-07-06
+
+### Fixed
+
+- Fixed the Linux release workflow failure during packaged app verification on GitHub Actions Ubuntu runners.
+- Linux packaged app verification now launches Electron with `--no-sandbox` in CI.
+- Linux packaged app verification now sets `ELECTRON_DISABLE_SANDBOX=1` for the verification run.
+- Kept Windows ZIP, Linux ZIP, Linux AppImage, `latest-linux.yml`, and checksum verification in the release workflow.
+- v0.2.1 supersedes the failed v0.2.0 release workflow run.
+
 ## 0.2.0 - 2026-07-06
 
 ### Added

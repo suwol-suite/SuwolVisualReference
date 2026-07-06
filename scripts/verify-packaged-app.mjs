@@ -83,7 +83,7 @@ function verifyUnpackedApp(unpackedPath, target) {
 
   verifyAsarMetadata(appAsarPath, target.unpackedDir);
   if (!skipRun && currentPlatform === target.platform) {
-    verifyExecutableVersion(executablePath, target.unpackedDir);
+    verifyExecutableVersion(executablePath, target);
   }
 
   console.log(`[verify-packaged-app] verified ${target.unpackedDir}`);
@@ -105,27 +105,32 @@ function verifyAsarMetadata(appAsarPath, label) {
   }
 }
 
-function verifyExecutableVersion(executablePath, label) {
-  const result = spawnSync(executablePath, ['--version'], {
+function verifyExecutableVersion(executablePath, target) {
+  const baseArgs = ['--version'];
+  const runArgs = target.platform === 'linux' ? ['--no-sandbox', ...baseArgs] : baseArgs;
+  const runEnv = {
+    ...process.env,
+    ...(target.platform === 'linux' ? { ELECTRON_DISABLE_SANDBOX: '1' } : {})
+  };
+  const result = spawnSync(executablePath, runArgs, {
     cwd: path.dirname(executablePath),
     encoding: 'utf8',
+    env: runEnv,
     timeout: 15_000,
     windowsHide: true
   });
   if (result.error) {
-    fail(`could not run ${label} executable with --version: ${result.error.message}`);
+    fail(formatRunFailure(target, executablePath, runArgs, result, result.error.message));
   }
   if (result.status !== 0) {
-    fail(
-      `${label} --version exited with ${result.status}. stdout: ${stringifyOutput(result.stdout)} stderr: ${stringifyOutput(
-        result.stderr
-      )}`
-    );
+    fail(formatRunFailure(target, executablePath, runArgs, result));
   }
 
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`.trim();
   if (!output.includes(version)) {
-    fail(`${label} --version did not print ${version}. Output: ${stringifyOutput(output)}`);
+    fail(
+      `${target.unpackedDir} ${runArgs.join(' ')} did not print ${version}. Output: ${stringifyOutput(output)}`
+    );
   }
 }
 
@@ -226,6 +231,18 @@ function getFlagValue(name) {
 function stringifyOutput(output) {
   const text = String(output ?? '').trim();
   return text.length > 0 ? text : '<empty>';
+}
+
+function formatRunFailure(target, executablePath, runArgs, result, errorMessage = null) {
+  return [
+    `could not verify packaged executable for ${target.platform}`,
+    `path: ${relativePath(executablePath)}`,
+    `args: ${runArgs.join(' ')}`,
+    `exit code: ${result.status ?? '<none>'}`,
+    `error: ${errorMessage ?? '<none>'}`,
+    `stdout: ${stringifyOutput(result.stdout).slice(0, 1000)}`,
+    `stderr: ${stringifyOutput(result.stderr).slice(0, 1000)}`
+  ].join('\n');
 }
 
 function normalizeAsarName(name) {

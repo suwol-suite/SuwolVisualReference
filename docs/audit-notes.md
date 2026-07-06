@@ -25,7 +25,7 @@ npm.cmd audit
 
 No `npm audit fix --force` was run. npm recommends breaking upgrades such as `electron@43.0.0`, `vite@8.1.3`, and newer `electron-vite` lines. Those upgrades may affect Electron runtime behavior, native ABI rebuilds, and the electron-vite config surface.
 
-The current v0.2.0 release preparation keeps the working Electron/Vite stack stable while adding user-facing library, media, export, and Linux AppImage update features. Remaining dev-only audit items stay documented for a future dependency-refresh pass. Before that release, upgrade Electron and Vite/electron-vite together in a dedicated compatibility pass, then run:
+The current v0.2.1 release preparation keeps the working Electron/Vite stack stable while patching Linux packaged app verification for GitHub Actions. Remaining dev-only audit items stay documented for a future dependency-refresh pass. Before that release, upgrade Electron and Vite/electron-vite together in a dedicated compatibility pass, then run:
 
 ```powershell
 npm.cmd install
@@ -48,6 +48,8 @@ The 2026-07-03 stabilization pass added `electron-builder` for Windows packaging
 The 2026-07-04 release-prep pass keeps `npm audit --omit=dev` as the required runtime audit gate in CI and release verification. Dev/tooling audit items remain documented for a future Electron/Vite compatibility pass.
 
 The 2026-07-06 v0.2.0 release-prep pass keeps the same production audit gate and does not run `npm audit fix --force`.
+
+The 2026-07-06 v0.2.1 patch keeps the same dependency set and only adjusts Linux verification launch arguments for packaged app checks.
 
 ## Mitigations Already Present
 

@@ -84,6 +84,7 @@ npm.cmd run icons:generate
 npm.cmd run typecheck
 npm.cmd run lint
 npm.cmd run test:selection
+npm.cmd run test:updates
 npm.cmd run i18n:check
 npm.cmd run license:check
 npm.cmd run smoke
@@ -112,6 +113,7 @@ npm run icons:generate
 npm run typecheck
 npm run lint
 npm run test:selection
+npm run test:updates
 npm run i18n:check
 npm run license:check
 npm run build
@@ -136,6 +138,8 @@ npm.cmd run release:checksums
 
 `scripts/verify-packaged-app.mjs` checks unpacked packaged apps after `electron-builder` creates `release/win-unpacked` or `release/linux-unpacked`. It runs the packaged executable with `--version` only on the matching OS.
 
+On GitHub Actions Ubuntu runners, Chromium can abort packaged Electron verification if `release/linux-unpacked/chrome-sandbox` does not have root ownership and mode 4755. The verifier runs Linux packaged apps with `--no-sandbox` and `ELECTRON_DISABLE_SANDBOX=1` for this verification step only. This CI verification setting is separate from Linux AppImage update behavior and does not change the Windows ZIP or Linux ZIP update policy.
+
 The GitHub Actions release workflow verifies each OS package before upload. The publish job then downloads both OS artifacts, runs checksum, release-asset, and ZIP verification scripts against `release-assets/`, signs `checksums.txt` and the versioned checksum file with the `GPG_PRIVATE_KEY_B64` secret, verifies the signatures with `suwol-release-public-key.asc`, and uploads the ZIP/AppImage files, `latest-linux.yml`, checksums, signatures, and public key to GitHub Releases.
 
 ## AppImage Update Support
@@ -144,7 +148,7 @@ Automatic update checks are enabled only when all conditions are true: the app i
 
 The Linux AppImage uses electron-builder GitHub publish metadata. The Release workflow must upload both `SuwolVisualReference-<version>-linux-x64.AppImage` and `latest-linux.yml`; missing update metadata means the AppImage cannot discover updates.
 
-The normal release trigger is a `v*` tag push. If a tag-triggered run fails after the tag already exists, the same workflow can be run manually with `workflow_dispatch` and the existing tag name, such as `v0.2.0`, without deleting or recreating the tag.
+The normal release trigger is a `v*` tag push. If a tag-triggered run fails after the tag already exists, the same workflow can be run manually with `workflow_dispatch` and the existing tag name, such as `v0.2.1`, without deleting or recreating the tag.
 
 ## Security Notes
 

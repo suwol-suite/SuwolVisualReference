@@ -38,11 +38,11 @@ Automatic updates are supported only in the Linux AppImage build. Windows ZIP an
 
 Download the latest build from [GitHub Releases](https://github.com/suwol-suite/SuwolVisualReference/releases).
 
-Latest v0.2.0 release files:
+Latest v0.2.1 release files:
 
-- Windows ZIP: `SuwolVisualReference-0.2.0-win-x64.zip`
-- Linux ZIP: `SuwolVisualReference-0.2.0-linux-x64.zip`
-- Linux AppImage: `SuwolVisualReference-0.2.0-linux-x64.AppImage`
+- Windows ZIP: `SuwolVisualReference-0.2.1-win-x64.zip`
+- Linux ZIP: `SuwolVisualReference-0.2.1-linux-x64.zip`
+- Linux AppImage: `SuwolVisualReference-0.2.1-linux-x64.AppImage`
 
 Update policy:
 
@@ -53,21 +53,21 @@ Update policy:
 
 ### Windows ZIP
 
-1. Download `SuwolVisualReference-0.2.0-win-x64.zip`.
+1. Download `SuwolVisualReference-0.2.1-win-x64.zip`.
 2. Extract the ZIP.
 3. Run `Suwol Visual Reference.exe`.
 4. Windows SmartScreen may warn because the build is not code-signed.
 
 ### Linux
 
-1. Download `SuwolVisualReference-0.2.0-linux-x64.AppImage` or `SuwolVisualReference-0.2.0-linux-x64.zip`.
+1. Download `SuwolVisualReference-0.2.1-linux-x64.AppImage` or `SuwolVisualReference-0.2.1-linux-x64.zip`.
 2. For ZIP, extract the archive.
 3. If your desktop environment requires it, mark the executable as runnable.
 
    AppImage:
 
    ```bash
-   chmod +x SuwolVisualReference-0.2.0-linux-x64.AppImage
+   chmod +x SuwolVisualReference-0.2.1-linux-x64.AppImage
    ```
 
    Extracted archive:
@@ -82,26 +82,26 @@ The Linux AppImage can check for updates from GitHub Releases using `latest-linu
 
 ### Verify Checksums
 
-Download `SuwolVisualReference-0.2.0-checksums.txt` from the same release and compare the SHA-256 hash before running the app. If a signed checksum file is published, also download `SuwolVisualReference-0.2.0-checksums.txt.asc` and verify the signature with the Suwol release public key.
+Download `SuwolVisualReference-0.2.1-checksums.txt` from the same release and compare the SHA-256 hash before running the app. If a signed checksum file is published, also download `SuwolVisualReference-0.2.1-checksums.txt.asc` and verify the signature with the Suwol release public key.
 
 Windows PowerShell:
 
 ```powershell
-Get-FileHash .\SuwolVisualReference-0.2.0-win-x64.zip -Algorithm SHA256
+Get-FileHash .\SuwolVisualReference-0.2.1-win-x64.zip -Algorithm SHA256
 ```
 
 Linux:
 
 ```bash
-sha256sum SuwolVisualReference-0.2.0-linux-x64.zip
+sha256sum SuwolVisualReference-0.2.1-linux-x64.zip
 ```
 
 Linux signature and checksum verification:
 
 ```bash
 gpg --import suwol-release-public-key.asc
-gpg --verify SuwolVisualReference-0.2.0-checksums.txt.asc SuwolVisualReference-0.2.0-checksums.txt
-shasum -a 256 -c SuwolVisualReference-0.2.0-checksums.txt
+gpg --verify SuwolVisualReference-0.2.1-checksums.txt.asc SuwolVisualReference-0.2.1-checksums.txt
+shasum -a 256 -c SuwolVisualReference-0.2.1-checksums.txt
 ```
 
 If the downloaded files are renamed locally, the same commands work with shorter names:
