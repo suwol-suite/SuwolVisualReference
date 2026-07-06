@@ -144,7 +144,7 @@ Automatic update checks are enabled only when all conditions are true: the app i
 
 The Linux AppImage uses electron-builder GitHub publish metadata. The Release workflow must upload both `SuwolVisualReference-<version>-linux-x64.AppImage` and `latest-linux.yml`; missing update metadata means the AppImage cannot discover updates.
 
-The normal release trigger is a `v*` tag push. If a tag-triggered run fails after the tag already exists, the same workflow can be run manually with `workflow_dispatch` and the existing tag name, such as `v0.1.1`, without deleting or recreating the tag.
+The normal release trigger is a `v*` tag push. If a tag-triggered run fails after the tag already exists, the same workflow can be run manually with `workflow_dispatch` and the existing tag name, such as `v0.2.0`, without deleting or recreating the tag.
 
 ## Security Notes
 

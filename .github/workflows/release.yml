@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Existing release tag to publish, for example v0.1.1'
+        description: 'Existing release tag to publish, for example v0.2.0'
         required: true
         type: string
 
@@ -48,6 +48,7 @@ jobs:
           npm.cmd run typecheck
           npm.cmd run lint
           npm.cmd run test:selection
+          npm.cmd run test:updates
           npm.cmd run i18n:check
           npm.cmd run license:check
           npm.cmd run smoke
@@ -103,6 +104,7 @@ jobs:
           npm run typecheck
           npm run lint
           npm run test:selection
+          npm run test:updates
           npm run i18n:check
           npm run license:check
           xvfb-run -a npm run smoke:ci:linux

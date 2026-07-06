@@ -94,6 +94,12 @@ Custom export template creation, preview rendering, unknown placeholder warnings
 
 `npm.cmd run test:selection` also runs a lightweight v0.2 contract check for color defaults, SVG inline-safety, GIF viewer preview selection, RGB distance SQL shape, and export placeholder support. It is intentionally source-level and does not require FFmpeg or browser automation.
 
+## 2026-07-06 v0.2.0 Release Readiness Check
+
+The v0.2.0 release prep keeps the large-library query model unchanged: grid and list views share paged asset queries, color search uses bounded indexed RGB comparisons, and organization actions stay in main-process SQLite transactions.
+
+Linux AppImage update support does not run inside library import, search, thumbnail generation, or export paths. Update checks are limited to packaged AppImage builds and are surfaced through Settings/About.
+
 ## Remaining Bottlenecks
 
 - Infinite pagination prevents initial DOM overload, but a very long browsing session can still accumulate many loaded cards. A true virtual grid remains a future upgrade if this becomes visible in manual use.

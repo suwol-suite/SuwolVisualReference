@@ -17,9 +17,10 @@ Do not create a release tag until the package version, changelog, release notes,
 4. Confirm `README.md`, `docs/known-issues.md`, and `docs/packaging-notes.md` still match the release.
 5. Run local checks.
 6. Commit and push `main`.
-7. Create and push the tag.
-8. Watch GitHub Actions.
-9. Confirm the GitHub Release assets and checksums.
+7. Confirm the pushed commit passes CI on Windows and Linux.
+8. Create and push the tag.
+9. Watch GitHub Actions.
+10. Confirm the GitHub Release assets and checksums.
 
 ## Local Windows Checks
 
@@ -28,6 +29,7 @@ npm.cmd run icons:generate
 npm.cmd run typecheck
 npm.cmd run lint
 npm.cmd run test:selection
+npm.cmd run test:updates
 npm.cmd run i18n:check
 npm.cmd run license:check
 npm.cmd run smoke
@@ -48,8 +50,8 @@ Local Windows verification may only have the Windows ZIP. The release workflow v
 ## Tagging
 
 ```powershell
-git tag v0.1.2
-git push origin v0.1.2
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 Tag push starts `.github/workflows/release.yml`.
