@@ -16,6 +16,14 @@ macOS builds are not distributed.
 
 Linux is distributed as a ZIP archive. Some desktop environments may require setting executable permission manually after extraction.
 
+Linux ZIP builds do not support automatic updates. Download a new ZIP from GitHub Releases when updating manually.
+
+## Linux AppImage Updates
+
+Linux AppImage builds support automatic update checks through GitHub Releases and `latest-linux.yml`. Some desktop environments require adding execute permission before the AppImage can run.
+
+Network restrictions, proxy settings, or firewalls can make update checks fail even when the app itself works offline.
+
 ## Linux Headless CI
 
 GitHub Actions runs Linux smoke tests under Xvfb and passes `--no-sandbox` to Electron because the hosted runner does not configure Chromium's SUID sandbox helper for packaged test execution. This is a CI-only headless test setting, not an app feature toggle.
@@ -42,7 +50,7 @@ Large libraries load assets in 500-item pages. This keeps the UI responsive, but
 
 ## Automatic Updates
 
-Automatic updates are not included. Download new ZIP files from GitHub Releases.
+Automatic updates are enabled only for Linux AppImage builds. Windows ZIP, Linux ZIP, macOS, development, and unpacked runs show an unsupported reason and link to GitHub Releases for manual downloads.
 
 ## Diagnostics And Logs
 

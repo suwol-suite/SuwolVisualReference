@@ -26,6 +26,15 @@ fixtures/local/
 *.keystore
 *.token
 secrets/
+
+# Release signing secrets
+suwol-release-private-key.asc
+suwol-release-revocation.asc
+*.private.asc
+*.revocation.asc
+*private-key*.asc
+*revocation*.asc
+
 *.sqlite
 *.sqlite-*
 *.db

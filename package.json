@@ -32,19 +32,23 @@
     "test:library-perf": "npm run build && electron out/main/index.js --library-perf-test",
     "pack:win": "npm run icons:generate && npm run build && electron-builder --win --dir",
     "pack:linux": "npm run icons:generate && npm run build && electron-builder --linux --dir",
-    "dist:win": "npm run icons:generate && npm run build && electron-builder --win zip",
-    "dist:linux": "npm run icons:generate && npm run build && electron-builder --linux zip",
+    "dist:win": "npm run icons:generate && npm run build && electron-builder --win zip --publish never",
+    "dist:linux": "npm run icons:generate && npm run build && electron-builder --linux zip --publish never",
+    "dist:linux:release": "npm run icons:generate && npm run build && electron-builder --linux AppImage zip --publish never",
     "release:zip:win": "npm run dist:win",
     "release:zip:linux": "npm run dist:linux",
     "release:checksums": "node scripts/checksums.mjs",
     "verify:checksums": "node scripts/verify-checksums.mjs",
+    "verify:release-assets": "node scripts/verify-release-assets.mjs",
     "verify:release:zip": "node scripts/verify-release-zip.mjs",
     "verify:packaged-app": "node scripts/verify-packaged-app.mjs",
-    "test:selection": "node scripts/test-selection-utils.mjs",
-    "release:verify": "npm run release:checksums && npm run verify:checksums && npm run verify:release:zip && npm run verify:packaged-app"
+    "test:selection": "node scripts/test-selection-utils.mjs && node scripts/test-update-support.mjs",
+    "test:updates": "node scripts/test-update-support.mjs",
+    "release:verify": "npm run release:checksums && npm run verify:checksums && npm run verify:release-assets && npm run verify:release:zip && npm run verify:packaged-app"
   },
   "dependencies": {
     "better-sqlite3": "^12.2.0",
+    "electron-updater": "^6.8.9",
     "i18next": "^26.3.4",
     "lucide-react": "^0.468.0",
     "mime-types": "^2.1.35",
@@ -133,6 +137,12 @@
       "category": "Graphics",
       "target": [
         {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
           "target": "zip",
           "arch": [
             "x64"
@@ -140,6 +150,13 @@
         }
       ],
       "artifactName": "SuwolVisualReference-${version}-linux-${arch}.${ext}"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "suwol-suite",
+        "repo": "SuwolVisualReference"
+      }
+    ]
   }
 }

@@ -12,6 +12,9 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Add execute permission on Linux if needed.
 - [ ] Launch the Linux app.
 - [ ] Run the Linux executable with `--version` and confirm the version.
+- [ ] Download the Linux AppImage from GitHub Releases.
+- [ ] Add execute permission to the Linux AppImage if needed.
+- [ ] Run the Linux AppImage with `--version` and confirm the version.
 - [ ] Confirm the app title is `Suwol Visual Reference`.
 - [ ] Confirm Windows SmartScreen behavior is understood for unsigned builds.
 
@@ -100,9 +103,23 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Switch to English.
 - [ ] Restart the app and confirm language preference persists.
 
+## Updates
+
+- [ ] Open Settings/About in a Linux AppImage and confirm update status is supported.
+- [ ] Use the update check button in a Linux AppImage and confirm an update available/latest/error state is shown.
+- [ ] Confirm download progress is shown when downloading an available update.
+- [ ] Confirm restart/install is offered only after download completes.
+- [ ] Open Settings/About in Windows ZIP or Linux ZIP and confirm automatic updates are shown as unsupported.
+- [ ] Use the GitHub Releases button and confirm it opens the releases page.
+
 ## Release Assets
 
 - [ ] Confirm Windows ZIP exists.
+- [ ] Confirm Linux AppImage exists.
 - [ ] Confirm Linux ZIP exists.
+- [ ] Confirm `latest-linux.yml` exists.
 - [ ] Confirm checksums file exists.
+- [ ] Confirm checksums include Windows ZIP, Linux ZIP, Linux AppImage, and `latest-linux.yml`.
+- [ ] Confirm checksums signature exists.
+- [ ] Import `suwol-release-public-key.asc` and verify `checksums.txt.asc`.
 - [ ] Verify ZIP hashes against the checksums file.

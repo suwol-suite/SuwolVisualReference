@@ -1,14 +1,20 @@
 # Packaging Notes
 
-Suwol Visual Reference is distributed as ZIP archives for Windows x64 and Linux x64. Installers, automatic updates, code signing, and macOS artifacts are not part of the current release line.
+Suwol Visual Reference is distributed as a Windows ZIP plus Linux AppImage and ZIP artifacts for x64. Linux AppImage builds support automatic update checks through GitHub Releases. Windows installers, Windows automatic updates, code signing, and macOS artifacts are not part of the current release line.
 
 ## Artifact Names
 
 Expected release assets:
 
 - `SuwolVisualReference-<version>-win-x64.zip`
+- `SuwolVisualReference-<version>-linux-x64.AppImage`
 - `SuwolVisualReference-<version>-linux-x64.zip`
+- `latest-linux.yml`
+- `checksums.txt`
+- `checksums.txt.asc`
 - `SuwolVisualReference-<version>-checksums.txt`
+- `SuwolVisualReference-<version>-checksums.txt.asc`
+- `suwol-release-public-key.asc`
 
 The user-facing app name remains `Suwol Visual Reference`.
 
@@ -48,7 +54,7 @@ Video thumbnail extraction is optional and uses only an external `ffmpeg`/`ffpro
 Rules for release builds:
 
 - Build the Windows ZIP on Windows.
-- Build the Linux ZIP on Linux.
+- Build the Linux ZIP and AppImage on Linux.
 - Do not force cross-OS release packaging for native modules.
 - Run `npm ci` before packaging.
 - Run `npm run rebuild:native` or `npm.cmd run rebuild:native` before release packaging.
@@ -87,6 +93,7 @@ npm.cmd run pack:win
 npm.cmd run release:zip:win
 npm.cmd run release:checksums
 npm.cmd run verify:checksums
+npm.cmd run verify:release-assets
 npm.cmd run verify:release:zip
 npm.cmd run verify:packaged-app
 npm.cmd run release:verify
@@ -109,7 +116,7 @@ npm run i18n:check
 npm run license:check
 npm run build
 xvfb-run -a ./node_modules/.bin/electron --no-sandbox out/main/index.js --smoke-test
-npm run release:zip:linux
+npm run dist:linux:release
 npm run verify:packaged-app -- --platform=linux
 ```
 
@@ -119,15 +126,23 @@ npm run verify:packaged-app -- --platform=linux
 npm.cmd run release:checksums
 ```
 
-`scripts/checksums.mjs` hashes matching `SuwolVisualReference-<version>-*.zip` files in `release/` by default and writes `SuwolVisualReference-<version>-checksums.txt`.
+`scripts/checksums.mjs` hashes matching `SuwolVisualReference-<version>-*.zip`, `.AppImage`, `.deb`, `.rpm`, and `latest-linux.yml` files in `release/` by default and writes both `SuwolVisualReference-<version>-checksums.txt` and `checksums.txt`.
 
-`scripts/verify-checksums.mjs` reads the checksum file, recalculates SHA-256 for each listed ZIP, and fails if a ZIP is missing or a hash differs.
+`scripts/verify-checksums.mjs` reads the checksum file, recalculates SHA-256 for each listed release artifact, and fails if an artifact is missing or a hash differs.
 
 `scripts/verify-release-zip.mjs` checks release ZIP structure, required executables, `resources/app.asar`, packaged icon resources, license/notices inside `app.asar`, and forbidden private/test paths.
 
+`scripts/verify-release-assets.mjs` checks the release asset set, AppImage presence and size, `latest-linux.yml` version/path/sha512 metadata, checksum coverage, checksum hash matches, and forbidden release asset names. Local Windows runs allow missing Linux assets by default; the release workflow uses `--require-all`.
+
 `scripts/verify-packaged-app.mjs` checks unpacked packaged apps after `electron-builder` creates `release/win-unpacked` or `release/linux-unpacked`. It runs the packaged executable with `--version` only on the matching OS.
 
-The GitHub Actions release workflow verifies each OS package before upload. The publish job then downloads both OS artifacts, runs checksum and ZIP verification scripts against `release-assets/`, and uploads the ZIP files plus checksum file to GitHub Releases.
+The GitHub Actions release workflow verifies each OS package before upload. The publish job then downloads both OS artifacts, runs checksum, release-asset, and ZIP verification scripts against `release-assets/`, signs `checksums.txt` and the versioned checksum file with the `GPG_PRIVATE_KEY_B64` secret, verifies the signatures with `suwol-release-public-key.asc`, and uploads the ZIP/AppImage files, `latest-linux.yml`, checksums, signatures, and public key to GitHub Releases.
+
+## AppImage Update Support
+
+Automatic update checks are enabled only when all conditions are true: the app is packaged, `process.platform` is `linux`, the `APPIMAGE` environment variable is present, and the app is not running in development mode. Windows ZIP, Linux ZIP, macOS, development, and unpacked runs return an unsupported reason through the updates IPC API.
+
+The Linux AppImage uses electron-builder GitHub publish metadata. The Release workflow must upload both `SuwolVisualReference-<version>-linux-x64.AppImage` and `latest-linux.yml`; missing update metadata means the AppImage cannot discover updates.
 
 The normal release trigger is a `v*` tag push. If a tag-triggered run fails after the tag already exists, the same workflow can be run manually with `workflow_dispatch` and the existing tag name, such as `v0.1.1`, without deleting or recreating the tag.
 

@@ -13,8 +13,11 @@ const version = String(packageJson.version);
 const checksumPath = path.join(releaseDir, `SuwolVisualReference-${version}-checksums.txt`);
 const expectedFiles = [
   `SuwolVisualReference-${version}-win-x64.zip`,
-  `SuwolVisualReference-${version}-linux-x64.zip`
+  `SuwolVisualReference-${version}-linux-x64.AppImage`,
+  `SuwolVisualReference-${version}-linux-x64.zip`,
+  'latest-linux.yml'
 ];
+const releaseArtifactPattern = /^([a-fA-F0-9]{64})\s+(.+\.(?:zip|AppImage|deb|rpm)|latest-linux\.yml)$/u;
 
 if (!fs.existsSync(checksumPath)) {
   fail(`checksum file does not exist: ${relativePath(checksumPath)}`);
@@ -26,7 +29,7 @@ const entries = fs
   .map((line) => line.trim())
   .filter(Boolean)
   .map((line) => {
-    const match = line.match(/^([a-fA-F0-9]{64})\s+(.+\.zip)$/u);
+    const match = line.match(releaseArtifactPattern);
     if (!match) {
       fail(`invalid checksum line in ${relativePath(checksumPath)}: ${line}`);
     }
@@ -34,7 +37,7 @@ const entries = fs
   });
 
 if (entries.length === 0) {
-  fail(`no ZIP entries found in ${relativePath(checksumPath)}`);
+  fail(`no release artifact entries found in ${relativePath(checksumPath)}`);
 }
 
 if (requireAll) {
@@ -54,7 +57,7 @@ for (const entry of entries) {
 
   const filePath = path.join(releaseDir, entry.fileName);
   if (!fs.existsSync(filePath)) {
-    fail(`checksum entry points to a missing ZIP: ${entry.fileName}`);
+    fail(`checksum entry points to a missing release artifact: ${entry.fileName}`);
   }
 
   const actualHash = crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');

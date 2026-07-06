@@ -21,6 +21,48 @@ export type AppConfig = {
   ffprobePath?: string;
 };
 
+export type UpdateSupportReason =
+  | 'unsupportedPlatform'
+  | 'notPackaged'
+  | 'notAppImage'
+  | 'updaterDisabledInDevelopment';
+
+export type UpdatePhase =
+  | 'unsupported'
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'notAvailable'
+  | 'downloading'
+  | 'downloaded'
+  | 'error';
+
+export type UpdateDownloadProgress = {
+  percent: number;
+  transferred: number;
+  total: number;
+  bytesPerSecond: number;
+};
+
+export type UpdateStatus = {
+  currentVersion: string;
+  supported: boolean;
+  phase: UpdatePhase;
+  reason?: UpdateSupportReason;
+  availableVersion?: string;
+  lastCheckedAt: string | null;
+  errorMessage?: string;
+  progress?: UpdateDownloadProgress;
+};
+
+export type UpdatePreferences = {
+  autoCheck: boolean;
+  autoDownload: boolean;
+  lastCheckedAt: string | null;
+};
+
+export type UpdatePreferenceInput = Partial<Pick<UpdatePreferences, 'autoCheck' | 'autoDownload'>>;
+
 export type LibraryManifest = {
   appName: string;
   formatVersion: number;

@@ -255,6 +255,7 @@ It summarizes npm packages bundled for development or runtime use by Suwol Visua
 | electron-builder-squirrel-windows | 26.15.3 | MIT | transitive |
 | electron-publish | 26.15.3 | MIT | transitive |
 | electron-to-chromium | 1.5.384 | ISC | transitive |
+| electron-updater | 6.8.9 | MIT | runtime direct |
 | electron-vite | 2.3.0 | MIT | development direct |
 | electron-winstaller | 5.4.0 | MIT | transitive |
 | emoji-regex | 8.0.0 | MIT | transitive |
@@ -368,6 +369,8 @@ It summarizes npm packages bundled for development or runtime use by Suwol Visua
 | levn | 0.4.1 | MIT | transitive |
 | locate-path | 6.0.0 | MIT | transitive |
 | lodash | 4.18.1 | MIT | transitive |
+| lodash.escaperegexp | 4.1.2 | MIT | transitive |
+| lodash.isequal | 4.5.0 | MIT | transitive |
 | loose-envify | 1.4.0 | MIT | transitive |
 | lowercase-keys | 2.0.0 | MIT | transitive |
 | lru-cache | 5.1.1 | ISC | transitive |
@@ -484,6 +487,7 @@ It summarizes npm packages bundled for development or runtime use by Suwol Visua
 | temp | 0.9.4 | MIT | transitive |
 | temp-file | 3.4.0 | MIT | transitive |
 | tiny-async-pool | 1.3.0 | MIT | transitive |
+| tiny-typed-emitter | 2.1.0 | MIT | transitive |
 | tinyglobby | 0.2.17 | MIT | transitive |
 | tmp | 0.2.7 | MIT | transitive |
 | tmp-promise | 3.0.3 | MIT | transitive |

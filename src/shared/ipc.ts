@@ -52,6 +52,18 @@ export const IPC_CHANNELS = {
   exportTemplatesDelete: 'export-templates:delete',
   exportTemplatesPreview: 'export-templates:preview',
   exportCreate: 'export:create',
+  updatesGetStatus: 'updates:get-status',
+  updatesCheck: 'updates:check',
+  updatesDownload: 'updates:download',
+  updatesInstall: 'updates:install',
+  updatesSetPreferences: 'updates:set-preferences',
+  updatesGetPreferences: 'updates:get-preferences',
+  updatesStatus: 'updates:status',
+  updatesAvailable: 'updates:available',
+  updatesNotAvailable: 'updates:not-available',
+  updatesDownloadProgress: 'updates:download-progress',
+  updatesDownloaded: 'updates:downloaded',
+  updatesError: 'updates:error',
   shellOpenPath: 'shell:open-path',
   shellOpenExternal: 'shell:open-external'
 } as const;

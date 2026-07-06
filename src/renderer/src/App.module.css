@@ -2473,6 +2473,86 @@
   font-size: 12px;
 }
 
+.updatePanel {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #2f3542;
+  border-radius: 8px;
+  background: #101217;
+}
+
+.updateHeader,
+.updateActions,
+.updatePreferences {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.updateHeader {
+  justify-content: space-between;
+}
+
+.updateHeader h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.updateHeader span {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.updateMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  margin: 0;
+}
+
+.updateMeta div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.updateMeta dt {
+  color: #8f96a3;
+  font-size: 12px;
+}
+
+.updateMeta dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #e7e7ee;
+}
+
+.updateProgress {
+  display: grid;
+  gap: 6px;
+}
+
+.updateProgress div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #a7adb9;
+  font-size: 12px;
+}
+
+.updateProgress > span {
+  height: 7px;
+  border-radius: 999px;
+  background: #78dcca;
+}
+
+.updateActions {
+  justify-content: flex-start;
+}
+
 .helpSection {
   display: grid;
   gap: 10px;

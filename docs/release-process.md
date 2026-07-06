@@ -1,6 +1,6 @@
 # Release Process
 
-This project publishes portable ZIP builds through GitHub Actions.
+This project publishes portable ZIP builds and a Linux AppImage through GitHub Actions.
 
 ## Version Policy
 
@@ -37,12 +37,13 @@ npm.cmd run pack:win
 npm.cmd run release:zip:win
 npm.cmd run release:checksums
 npm.cmd run verify:checksums
+npm.cmd run verify:release-assets
 npm.cmd run verify:release:zip
 npm.cmd run verify:packaged-app
 npm.cmd run release:verify
 ```
 
-Local Windows verification may only have the Windows ZIP. The release workflow verifies both Windows and Linux ZIP files after downloading artifacts from both OS jobs.
+Local Windows verification may only have the Windows ZIP. The release workflow verifies Windows ZIP, Linux ZIP, Linux AppImage, and `latest-linux.yml` after downloading artifacts from both OS jobs.
 
 ## Tagging
 
@@ -58,13 +59,15 @@ Do not delete or recreate a local or remote release tag without explicit user ap
 ## GitHub Actions Release Flow
 
 1. Windows runner builds the Windows ZIP.
-2. Linux runner builds the Linux ZIP.
+2. Linux runner builds the Linux AppImage and ZIP artifacts.
 3. Release job downloads both artifacts.
 4. OS build jobs verify unpacked packaged apps before upload.
-5. Release job creates `SuwolVisualReference-<version>-checksums.txt`.
-6. Release job verifies checksums.
-7. Release job verifies ZIP structure and forbidden-path rules.
-8. Release job publishes the GitHub Release.
+5. Release job creates `checksums.txt` and `SuwolVisualReference-<version>-checksums.txt`.
+6. Release job signs both checksum files with the `GPG_PRIVATE_KEY_B64` and `GPG_PASSPHRASE` secrets.
+7. Release job verifies checksums and detached GPG signatures with `suwol-release-public-key.asc`.
+8. Release job verifies AppImage/update metadata release assets.
+9. Release job verifies ZIP structure and forbidden-path rules.
+10. Release job publishes the GitHub Release.
 
 ## Failure Recovery
 
@@ -77,7 +80,15 @@ Use tag deletion/recreation only when the user explicitly approves it.
 Expected asset names:
 
 - `SuwolVisualReference-<version>-win-x64.zip`
+- `SuwolVisualReference-<version>-linux-x64.AppImage`
 - `SuwolVisualReference-<version>-linux-x64.zip`
+- `latest-linux.yml`
+- `checksums.txt`
+- `checksums.txt.asc`
 - `SuwolVisualReference-<version>-checksums.txt`
+- `SuwolVisualReference-<version>-checksums.txt.asc`
+- `suwol-release-public-key.asc`
 
 The app itself keeps the user-facing name `Suwol Visual Reference`.
+
+Linux AppImage update QA is separate from ZIP smoke QA. Confirm that Settings/About reports update support in the AppImage, that ZIP builds report automatic updates as unsupported, and that `latest-linux.yml` is included in checksums.

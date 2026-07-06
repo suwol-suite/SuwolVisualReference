@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron';
 import { IPC_CHANNELS } from '@shared/ipc';
 import type { LocaleCode } from '@shared/i18n/types';
 import type {
@@ -39,8 +39,19 @@ import type {
   SmartFolderRecord,
   SmartFolderUpdateInput,
   TagMergeInput,
-  TagRecord
+  TagRecord,
+  UpdatePreferenceInput,
+  UpdatePreferences,
+  UpdateStatus
 } from '@shared/types';
+
+type UpdateStatusListener = (status: UpdateStatus) => void;
+
+function onUpdateEvent(channel: string, listener: UpdateStatusListener): () => void {
+  const handler = (_event: IpcRendererEvent, status: UpdateStatus): void => listener(status);
+  ipcRenderer.on(channel, handler);
+  return () => ipcRenderer.removeListener(channel, handler);
+}
 
 const api = {
   getAppConfig: (): Promise<AppConfig> => ipcRenderer.invoke(IPC_CHANNELS.appConfigGet),
@@ -124,6 +135,23 @@ const api = {
   previewExportTemplate: (input: ExportTemplatePreviewInput): Promise<ExportTemplatePreviewResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.exportTemplatesPreview, input),
   createExport: (input: ExportInput): Promise<ExportResult> => ipcRenderer.invoke(IPC_CHANNELS.exportCreate, input),
+  updates: {
+    getStatus: (): Promise<UpdateStatus> => ipcRenderer.invoke(IPC_CHANNELS.updatesGetStatus),
+    check: (): Promise<UpdateStatus> => ipcRenderer.invoke(IPC_CHANNELS.updatesCheck),
+    download: (): Promise<UpdateStatus> => ipcRenderer.invoke(IPC_CHANNELS.updatesDownload),
+    install: (): Promise<UpdateStatus> => ipcRenderer.invoke(IPC_CHANNELS.updatesInstall),
+    getPreferences: (): Promise<UpdatePreferences> => ipcRenderer.invoke(IPC_CHANNELS.updatesGetPreferences),
+    setPreferences: (input: UpdatePreferenceInput): Promise<UpdatePreferences> =>
+      ipcRenderer.invoke(IPC_CHANNELS.updatesSetPreferences, input),
+    onStatus: (listener: UpdateStatusListener): (() => void) => onUpdateEvent(IPC_CHANNELS.updatesStatus, listener),
+    onAvailable: (listener: UpdateStatusListener): (() => void) => onUpdateEvent(IPC_CHANNELS.updatesAvailable, listener),
+    onNotAvailable: (listener: UpdateStatusListener): (() => void) =>
+      onUpdateEvent(IPC_CHANNELS.updatesNotAvailable, listener),
+    onDownloadProgress: (listener: UpdateStatusListener): (() => void) =>
+      onUpdateEvent(IPC_CHANNELS.updatesDownloadProgress, listener),
+    onDownloaded: (listener: UpdateStatusListener): (() => void) => onUpdateEvent(IPC_CHANNELS.updatesDownloaded, listener),
+    onError: (listener: UpdateStatusListener): (() => void) => onUpdateEvent(IPC_CHANNELS.updatesError, listener)
+  },
   openPath: (targetPath: string): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.shellOpenPath, targetPath),
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.shellOpenExternal, url),
   getPathForFile: (file: File): string => webUtils.getPathForFile(file)

@@ -40,6 +40,41 @@
   "thirdPartyNotices": "Third-party notices: {{path}}",
   "knownIssues": "Known issues: video thumbnails need optional external FFmpeg; rich audio/video playback is not included.",
   "ffmpegOptional": "FFmpeg is optional, external, and not bundled with the app.",
+  "updates": {
+    "title": "Updates",
+    "subtitle": "Automatic updates are supported only by the Linux AppImage build.",
+    "currentVersion": "Current version",
+    "support": "Update support",
+    "status": "Update status",
+    "lastCheckedAt": "Last checked",
+    "neverChecked": "Never checked",
+    "unsupportedReason": "Unsupported reason",
+    "availableVersion": "Available version",
+    "check": "Check for updates",
+    "download": "Download update",
+    "install": "Restart and install",
+    "autoCheck": "Automatically check for updates",
+    "autoDownload": "Automatically download updates",
+    "openReleases": "Open GitHub Releases",
+    "manualUpdateHelp": "This distribution format does not support automatic updates. Download a new ZIP or AppImage from GitHub Releases.",
+    "downloadProgress": "Downloading {{percent}}%",
+    "phases": {
+      "unsupported": "Unsupported",
+      "idle": "Ready",
+      "checking": "Checking...",
+      "available": "Update available",
+      "notAvailable": "You are on the latest version",
+      "downloading": "Downloading...",
+      "downloaded": "Download complete",
+      "error": "Update error"
+    },
+    "reasons": {
+      "unsupportedPlatform": "Automatic updates are enabled only for Linux AppImage builds.",
+      "notPackaged": "Automatic updates are disabled outside packaged builds.",
+      "notAppImage": "Linux ZIP builds do not support automatic updates.",
+      "updaterDisabledInDevelopment": "Automatic updates are disabled in development mode."
+    }
+  },
   "shortcuts": {
     "selectAll": "Select the currently loaded assets.",
     "toggle": "Add or remove an asset from the selection.",

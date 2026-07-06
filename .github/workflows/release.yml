@@ -69,7 +69,7 @@ jobs:
           if-no-files-found: error
 
   build-linux:
-    name: Build Linux ZIP
+    name: Build Linux Artifacts
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
@@ -107,8 +107,8 @@ jobs:
           npm run license:check
           xvfb-run -a npm run smoke:ci:linux
 
-      - name: Build release ZIP
-        run: npm run release:zip:linux
+      - name: Build Linux release artifacts
+        run: npm run dist:linux:release
 
       - name: Verify packaged app
         run: npm run verify:packaged-app -- --platform=linux
@@ -116,11 +116,14 @@ jobs:
       - name: List release files
         run: find release -maxdepth 2 -type f -print
 
-      - name: Upload Linux ZIP
+      - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-zip
-          path: release/SuwolVisualReference-*-linux-x64.zip
+          name: linux-artifacts
+          path: |
+            release/SuwolVisualReference-*-linux-x64.AppImage
+            release/SuwolVisualReference-*-linux-x64.zip
+            release/latest-linux.yml
           if-no-files-found: error
 
   release:
@@ -148,10 +151,10 @@ jobs:
           name: windows-zip
           path: release-assets
 
-      - name: Download Linux ZIP
+      - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
-          name: linux-zip
+          name: linux-artifacts
           path: release-assets
 
       - name: Verify version and create checksums
@@ -169,13 +172,51 @@ jobs:
             exit 1
           fi
           git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}"
+          test -s suwol-release-public-key.asc
           find release-assets -maxdepth 1 -type f -print
           node scripts/checksums.mjs release-assets
           node scripts/verify-checksums.mjs release-assets --require-all
+          node scripts/verify-release-assets.mjs release-assets --require-all
           node scripts/verify-release-zip.mjs release-assets --require-all
-          cat "release-assets/SuwolVisualReference-${VERSION}-checksums.txt"
+          cat "release-assets/checksums.txt"
           echo "RELEASE_TAG=${RELEASE_TAG}" >> "$GITHUB_ENV"
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Import GPG private key
+        run: |
+          set -euo pipefail
+          test -n "$GPG_PRIVATE_KEY_B64"
+          umask 077
+          echo "$GPG_PRIVATE_KEY_B64" | base64 --decode > private.asc
+          gpg --batch --import private.asc
+          rm -f private.asc
+        env:
+          GPG_PRIVATE_KEY_B64: ${{ secrets.GPG_PRIVATE_KEY_B64 }}
+
+      - name: Sign checksums
+        run: |
+          set -euo pipefail
+          test -n "$GPG_PASSPHRASE"
+          cd release-assets
+          for checksum_file in checksums.txt "SuwolVisualReference-${VERSION}-checksums.txt"; do
+            printf '%s' "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+              --passphrase-fd 0 \
+              --armor --detach-sign \
+              --output "${checksum_file}.asc" \
+              "$checksum_file"
+            test -s "${checksum_file}.asc"
+          done
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Verify signed checksums
+        run: |
+          set -euo pipefail
+          gpg --import suwol-release-public-key.asc
+          gpg --verify release-assets/checksums.txt.asc release-assets/checksums.txt
+          gpg --verify "release-assets/SuwolVisualReference-${VERSION}-checksums.txt.asc" "release-assets/SuwolVisualReference-${VERSION}-checksums.txt"
+          cd release-assets
+          sha256sum -c checksums.txt
 
       - name: Publish release
         env:
@@ -188,8 +229,14 @@ jobs:
           fi
           gh release create "$RELEASE_TAG" \
             "release-assets/SuwolVisualReference-${VERSION}-win-x64.zip" \
+            "release-assets/SuwolVisualReference-${VERSION}-linux-x64.AppImage" \
             "release-assets/SuwolVisualReference-${VERSION}-linux-x64.zip" \
+            "release-assets/latest-linux.yml" \
+            "release-assets/checksums.txt" \
+            "release-assets/checksums.txt.asc" \
             "release-assets/SuwolVisualReference-${VERSION}-checksums.txt" \
+            "release-assets/SuwolVisualReference-${VERSION}-checksums.txt.asc" \
+            "suwol-release-public-key.asc" \
             --verify-tag \
             --title "Suwol Visual Reference ${RELEASE_TAG}" \
             --notes-file "$NOTES_FILE"

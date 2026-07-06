@@ -23,6 +23,7 @@ import type {
   ExportTemplateSaveInput,
   ImportFilesInput,
   ImportFolderInput,
+  UpdatePreferenceInput,
   SmartFolderQuery,
   SmartFolderUpdateInput,
   TagMergeInput
@@ -34,11 +35,13 @@ import { LibraryService } from './services/library-service';
 import { PermanentDeleteService } from './services/permanent-delete-service';
 import { RecentLibraryService } from './services/recent-library-service';
 import { resolveResourcePath } from './services/resource-paths';
+import { UpdateService } from './services/update-service';
 import { runLibraryPerfTest } from './library-perf-test';
 import { runSmokeTest } from './smoke-test';
 import { runUiImportTest } from './ui-import-test';
 
 let mainWindow: BrowserWindow | null = null;
+let updateService: UpdateService | null = null;
 
 const libraryService = new LibraryService();
 const assetImportService = new AssetImportService(libraryService);
@@ -127,8 +130,12 @@ if (!handleEarlyCliFlags()) {
     }
 
     registerAssetProtocol();
+    updateService = await UpdateService.create((channel, payload) => {
+      mainWindow?.webContents.send(channel, payload);
+    });
     registerIpcHandlers();
     createWindow();
+    void updateService.runStartupCheck();
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
@@ -371,6 +378,15 @@ function registerIpcHandlers(): void {
     return withErrorCode('EXPORT_FAILED', () => exportService.exportMarkdown(input));
   });
 
+  ipcMain.handle(IPC_CHANNELS.updatesGetStatus, () => requireUpdateService().getStatus());
+  ipcMain.handle(IPC_CHANNELS.updatesGetPreferences, () => requireUpdateService().getPreferences());
+  ipcMain.handle(IPC_CHANNELS.updatesSetPreferences, (_event, input: UpdatePreferenceInput) => {
+    return requireUpdateService().setPreferences(input);
+  });
+  ipcMain.handle(IPC_CHANNELS.updatesCheck, () => requireUpdateService().checkForUpdates());
+  ipcMain.handle(IPC_CHANNELS.updatesDownload, () => requireUpdateService().downloadUpdate());
+  ipcMain.handle(IPC_CHANNELS.updatesInstall, () => requireUpdateService().installDownloadedUpdate());
+
   ipcMain.handle(IPC_CHANNELS.shellOpenPath, async (_event, targetPath: string) => {
     const result = await shell.openPath(targetPath);
     if (result) {
@@ -418,6 +434,13 @@ function assertWindow(): BrowserWindow {
     throw new Error('Main window is not ready.');
   }
   return mainWindow;
+}
+
+function requireUpdateService(): UpdateService {
+  if (!updateService) {
+    throw new Error('Update service is not ready.');
+  }
+  return updateService;
 }
 
 function getWindowIconPath(): string {

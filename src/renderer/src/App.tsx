@@ -73,7 +73,9 @@ import type {
   ExportTemplateSection,
   SmartFolderCondition,
   SmartFolderQuery,
-  SmartFolderRecord
+  SmartFolderRecord,
+  UpdatePreferences,
+  UpdateStatus
 } from '@shared/types';
 import { SUPPORTED_LANGUAGES } from '@shared/i18n/languages';
 import type { LanguagePreference } from '@shared/i18n/types';
@@ -93,6 +95,7 @@ const EMPTY_FILTERS: AssetFilters = {};
 const DEFAULT_COLOR_TOLERANCE = 48;
 const DEFAULT_COLOR_MIN_RATIO = 0.02;
 const GITHUB_REPOSITORY_URL = 'https://github.com/suwol-suite/SuwolVisualReference';
+const GITHUB_RELEASES_URL = `${GITHUB_REPOSITORY_URL}/releases`;
 const THIRD_PARTY_NOTICES_PATH = 'THIRD_PARTY_NOTICES.md';
 const EXPORT_PLACEHOLDERS = [
   'title',
@@ -4435,6 +4438,183 @@ function ExportTemplateManagerDialog({
   );
 }
 
+function UpdatePanel({ compact = false }: { compact?: boolean }): JSX.Element {
+  const { t, i18n: i18nInstance } = useTranslation(['settings', 'common']);
+  const [status, setStatus] = useState<UpdateStatus | null>(null);
+  const [preferences, setPreferences] = useState<UpdatePreferences | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const unsubscribe = window.refForge.updates.onStatus((nextStatus) => {
+      if (active) {
+        setStatus(nextStatus);
+      }
+    });
+
+    Promise.all([window.refForge.updates.getStatus(), window.refForge.updates.getPreferences()])
+      .then(([nextStatus, nextPreferences]) => {
+        if (!active) {
+          return;
+        }
+        setStatus(nextStatus);
+        setPreferences(nextPreferences);
+      })
+      .catch((loadError) => {
+        if (active) {
+          setError(loadError instanceof Error ? loadError.message : String(loadError));
+        }
+      });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const updatePreferences = async (input: Partial<UpdatePreferences>): Promise<void> => {
+    setError(null);
+    try {
+      const nextPreferences = await window.refForge.updates.setPreferences(input);
+      setPreferences(nextPreferences);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : String(updateError));
+    }
+  };
+
+  const runUpdateAction = async (action: () => Promise<UpdateStatus> | UpdateStatus): Promise<void> => {
+    setError(null);
+    try {
+      const nextStatus = await action();
+      setStatus(nextStatus);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : String(updateError));
+    }
+  };
+
+  const supported = status?.supported ?? false;
+  const busy = status?.phase === 'checking' || status?.phase === 'downloading';
+  const progressPercent = clampNumber(status?.progress?.percent ?? 0, 0, 100);
+
+  return (
+    <section className={styles.updatePanel}>
+      <div className={styles.updateHeader}>
+        <div>
+          <h3>{t('settings:updates.title')}</h3>
+          <span>{t('settings:updates.subtitle')}</span>
+        </div>
+        <button type="button" className={styles.secondaryButton} onClick={() => void window.refForge.openExternal(GITHUB_RELEASES_URL)}>
+          <HelpCircle size={15} />
+          {t('settings:updates.openReleases')}
+        </button>
+      </div>
+
+      <dl className={styles.updateMeta}>
+        <div>
+          <dt>{t('settings:updates.currentVersion')}</dt>
+          <dd>{status?.currentVersion ?? '0.0.0'}</dd>
+        </div>
+        <div>
+          <dt>{t('settings:updates.support')}</dt>
+          <dd>{supported ? t('common:status.enabled') : t('common:status.disabled')}</dd>
+        </div>
+        <div>
+          <dt>{t('settings:updates.status')}</dt>
+          <dd>{status ? t(`settings:updates.phases.${status.phase}`) : t('common:status.loading')}</dd>
+        </div>
+        <div>
+          <dt>{t('settings:updates.lastCheckedAt')}</dt>
+          <dd>
+            {status?.lastCheckedAt
+              ? formatDateTime(status.lastCheckedAt, i18nInstance.language)
+              : t('settings:updates.neverChecked')}
+          </dd>
+        </div>
+        {!supported && status?.reason ? (
+          <div>
+            <dt>{t('settings:updates.unsupportedReason')}</dt>
+            <dd>{t(`settings:updates.reasons.${status.reason}`)}</dd>
+          </div>
+        ) : null}
+        {status?.availableVersion ? (
+          <div>
+            <dt>{t('settings:updates.availableVersion')}</dt>
+            <dd>{status.availableVersion}</dd>
+          </div>
+        ) : null}
+      </dl>
+
+      {status?.progress ? (
+        <div className={styles.updateProgress}>
+          <div>
+            <span>{t('settings:updates.downloadProgress', { percent: Math.round(progressPercent) })}</span>
+            <span>
+              {formatBytes(status.progress.transferred, i18nInstance.language)} /{' '}
+              {formatBytes(status.progress.total, i18nInstance.language)}
+            </span>
+          </div>
+          <span style={{ width: `${progressPercent}%` }} />
+        </div>
+      ) : null}
+
+      {status?.errorMessage ? <div className={styles.inlineError}>{status.errorMessage}</div> : null}
+      {error ? <div className={styles.inlineError}>{error}</div> : null}
+      {!supported ? <p className={styles.mutedText}>{t('settings:updates.manualUpdateHelp')}</p> : null}
+
+      {!compact ? (
+        <div className={styles.updatePreferences}>
+          <label className={styles.checkControl}>
+            <input
+              type="checkbox"
+              checked={preferences?.autoCheck ?? true}
+              onChange={(event) => void updatePreferences({ autoCheck: event.target.checked })}
+            />
+            {t('settings:updates.autoCheck')}
+          </label>
+          <label className={styles.checkControl}>
+            <input
+              type="checkbox"
+              checked={preferences?.autoDownload ?? false}
+              onChange={(event) => void updatePreferences({ autoDownload: event.target.checked })}
+            />
+            {t('settings:updates.autoDownload')}
+          </label>
+        </div>
+      ) : null}
+
+      <div className={styles.updateActions}>
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          disabled={!supported || busy}
+          onClick={() => void runUpdateAction(() => window.refForge.updates.check())}
+        >
+          <RotateCcw size={15} />
+          {t('settings:updates.check')}
+        </button>
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          disabled={!supported || status?.phase !== 'available'}
+          onClick={() => void runUpdateAction(() => window.refForge.updates.download())}
+        >
+          <ArrowDown size={15} />
+          {t('settings:updates.download')}
+        </button>
+        <button
+          type="button"
+          className={styles.primaryButton}
+          disabled={!supported || status?.phase !== 'downloaded'}
+          onClick={() => void runUpdateAction(() => window.refForge.updates.install())}
+        >
+          <CheckCircle2 size={15} />
+          {t('settings:updates.install')}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function HelpDialog({ onClose }: { onClose: () => void }): JSX.Element {
   const { t } = useTranslation(['common', 'settings']);
   const config = useRefForgeStore((state) => state.config);
@@ -4484,6 +4664,7 @@ function HelpDialog({ onClose }: { onClose: () => void }): JSX.Element {
             </div>
           </div>
         </section>
+        <UpdatePanel compact />
         <section className={styles.helpSection}>
           <h3>
             <Keyboard size={16} />
@@ -4625,6 +4806,8 @@ function SettingsDialog({ onClose }: { onClose: () => void }): JSX.Element {
             </span>
           </div>
         </section>
+
+        <UpdatePanel />
 
         <section className={styles.inspectorSection}>
           <h3>{t('settings:supportedExtensions')}</h3>

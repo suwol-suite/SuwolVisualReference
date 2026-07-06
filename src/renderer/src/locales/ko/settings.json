@@ -40,6 +40,41 @@
   "thirdPartyNotices": "서드파티 고지: {{path}}",
   "knownIssues": "알려진 제한: 동영상 썸네일은 선택적 외부 FFmpeg가 필요하며, 풍부한 오디오/동영상 재생은 포함하지 않습니다.",
   "ffmpegOptional": "FFmpeg는 선택적 외부 도구이며 앱에 번들하지 않습니다.",
+  "updates": {
+    "title": "업데이트",
+    "subtitle": "자동 업데이트는 Linux AppImage 빌드에서만 지원합니다.",
+    "currentVersion": "현재 버전",
+    "support": "업데이트 지원",
+    "status": "업데이트 상태",
+    "lastCheckedAt": "마지막 확인 시간",
+    "neverChecked": "아직 확인하지 않음",
+    "unsupportedReason": "지원되지 않는 이유",
+    "availableVersion": "사용 가능한 버전",
+    "check": "업데이트 확인",
+    "download": "업데이트 다운로드",
+    "install": "재시작 후 설치",
+    "autoCheck": "자동으로 업데이트 확인",
+    "autoDownload": "자동으로 업데이트 다운로드",
+    "openReleases": "GitHub Releases 열기",
+    "manualUpdateHelp": "이 배포 형식에서는 자동 업데이트를 지원하지 않습니다. GitHub Releases에서 새 ZIP 또는 AppImage를 다운로드하세요.",
+    "downloadProgress": "다운로드 중 {{percent}}%",
+    "phases": {
+      "unsupported": "지원되지 않음",
+      "idle": "준비됨",
+      "checking": "확인 중...",
+      "available": "업데이트 사용 가능",
+      "notAvailable": "최신 버전입니다",
+      "downloading": "다운로드 중...",
+      "downloaded": "다운로드 완료",
+      "error": "업데이트 오류"
+    },
+    "reasons": {
+      "unsupportedPlatform": "자동 업데이트는 Linux AppImage 빌드에서만 활성화됩니다.",
+      "notPackaged": "패키징된 빌드가 아니면 자동 업데이트를 사용하지 않습니다.",
+      "notAppImage": "Linux ZIP 빌드는 자동 업데이트를 지원하지 않습니다.",
+      "updaterDisabledInDevelopment": "개발 모드에서는 자동 업데이트를 사용하지 않습니다."
+    }
+  },
   "shortcuts": {
     "selectAll": "현재 로드된 자산을 선택합니다.",
     "toggle": "선택에 자산을 추가하거나 해제합니다.",

@@ -29,14 +29,14 @@ Screenshots are planned after the first public ZIP release.
 ## Supported Platforms
 
 - Windows x64: ZIP distribution.
-- Linux x64: ZIP distribution.
+- Linux x64: ZIP and AppImage distributions.
 - macOS: not distributed yet.
 
-No installer and no automatic updater are included.
+Automatic updates are supported only in the Linux AppImage build. Windows ZIP and Linux ZIP builds use manual updates from GitHub Releases.
 
 ## Download
 
-Download the latest ZIP from [GitHub Releases](https://github.com/suwol-suite/SuwolVisualReference/releases).
+Download the latest build from [GitHub Releases](https://github.com/suwol-suite/SuwolVisualReference/releases).
 
 ### Windows ZIP
 
@@ -45,21 +45,31 @@ Download the latest ZIP from [GitHub Releases](https://github.com/suwol-suite/Su
 3. Run `Suwol Visual Reference.exe`.
 4. Windows SmartScreen may warn because the build is not code-signed.
 
-### Linux ZIP
+### Linux
 
-1. Download `SuwolVisualReference-<version>-linux-x64.zip`.
-2. Extract the ZIP.
-3. If your desktop environment requires it, mark the executable as runnable:
+1. Download `SuwolVisualReference-<version>-linux-x64.AppImage` or `SuwolVisualReference-<version>-linux-x64.zip`.
+2. For ZIP, extract the archive.
+3. If your desktop environment requires it, mark the executable as runnable.
+
+   AppImage:
+
+   ```bash
+   chmod +x SuwolVisualReference-<version>-linux-x64.AppImage
+   ```
+
+   Extracted archive:
 
    ```bash
    chmod +x "Suwol Visual Reference"
    ```
 
-4. Run the app from the extracted folder.
+4. Run the AppImage or the app from the extracted folder.
+
+The Linux AppImage can check for updates from GitHub Releases using `latest-linux.yml`. It checks automatically by default but does not download or install updates until you choose that action in Settings/About. Linux ZIP builds stay manual-update only.
 
 ### Verify Checksums
 
-Download `SuwolVisualReference-<version>-checksums.txt` from the same release and compare the SHA-256 hash before running the app.
+Download `SuwolVisualReference-<version>-checksums.txt` from the same release and compare the SHA-256 hash before running the app. If a signed checksum file is published, also download `SuwolVisualReference-<version>-checksums.txt.asc` and verify the signature with the Suwol release public key.
 
 Windows PowerShell:
 
@@ -71,6 +81,23 @@ Linux:
 
 ```bash
 sha256sum SuwolVisualReference-<version>-linux-x64.zip
+```
+
+Linux signature and checksum verification:
+
+```bash
+gpg --import suwol-release-public-key.asc
+gpg --verify SuwolVisualReference-<version>-checksums.txt.asc SuwolVisualReference-<version>-checksums.txt
+shasum -a 256 -c SuwolVisualReference-<version>-checksums.txt
+```
+
+If the downloaded files are renamed locally, the same commands work with shorter names:
+
+```bash
+gpg --import suwol-release-public-key.asc
+gpg --verify checksums.txt.asc checksums.txt
+sha256sum -c checksums.txt
+shasum -a 256 -c checksums.txt
 ```
 
 ## Development Environment
@@ -122,6 +149,7 @@ npm.cmd run pack:win
 npm.cmd run release:zip:win
 npm.cmd run release:checksums
 npm.cmd run verify:checksums
+npm.cmd run verify:release-assets
 npm.cmd run verify:release:zip
 npm.cmd run verify:packaged-app
 ```
@@ -143,25 +171,32 @@ Windows ZIP:
 npm.cmd run release:zip:win
 ```
 
-Linux ZIP, normally on a Linux runner:
+Linux artifacts, normally on a Linux runner:
 
 ```bash
-npm run release:zip:linux
+npm run dist:linux:release
 ```
 
 Checksums:
 
 ```powershell
 npm.cmd run release:checksums
+npm.cmd run verify:release-assets
 ```
 
 Expected release assets:
 
 - `SuwolVisualReference-<version>-win-x64.zip`
+- `SuwolVisualReference-<version>-linux-x64.AppImage`
 - `SuwolVisualReference-<version>-linux-x64.zip`
+- `latest-linux.yml`
 - `SuwolVisualReference-<version>-checksums.txt`
+- `SuwolVisualReference-<version>-checksums.txt.asc`
+- `checksums.txt`
+- `checksums.txt.asc`
+- `suwol-release-public-key.asc`
 
-GitHub Actions builds Windows and Linux ZIP files on their matching OS runners when a `v*` tag is pushed. The workflow publishes a GitHub Release with ZIP files and SHA-256 checksums using the default `GITHUB_TOKEN`.
+GitHub Actions builds Windows and Linux files on their matching OS runners when a `v*` tag is pushed. The workflow publishes a GitHub Release with ZIP/AppImage files, `latest-linux.yml`, SHA-256 checksums, detached GPG signatures, and the release public key using the default `GITHUB_TOKEN`.
 
 The CI workflow runs on pushes and pull requests to `main`. It checks type safety, linting, selection logic, i18n resources, third-party notices, smoke behavior, production build, and production dependency audit on Windows and Linux.
 
