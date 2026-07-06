@@ -119,6 +119,7 @@ npm run license:check
 npm run build
 xvfb-run -a ./node_modules/.bin/electron --no-sandbox out/main/index.js --smoke-test
 npm run dist:linux:release
+npm run release:normalize-linux-appimage -- --require
 npm run verify:packaged-app -- --platform=linux
 ```
 
@@ -149,6 +150,8 @@ The GitHub Actions release workflow verifies each OS package before upload. The 
 Automatic update checks are enabled only when all conditions are true: the app is packaged, `process.platform` is `linux`, the `APPIMAGE` environment variable is present, and the app is not running in development mode. Windows ZIP, Linux ZIP, macOS, development, and unpacked runs return an unsupported reason through the updates IPC API.
 
 The Linux AppImage uses electron-builder GitHub publish metadata. The Release workflow must upload both `SuwolVisualReference-<version>-linux-x64.AppImage` and `latest-linux.yml`; missing update metadata means the AppImage cannot discover updates.
+
+electron-builder may emit AppImage files with an `x86_64` architecture suffix. The release workflow normalizes the AppImage file name and matching `latest-linux.yml` entries to the documented `linux-x64.AppImage` release asset name before upload, checksum generation, and release-asset verification.
 
 The normal release trigger is a `v*` tag push. If a tag-triggered run fails after the tag already exists, the same workflow can be run manually with `workflow_dispatch` and the existing tag name, such as `v0.2.1`, without deleting or recreating the tag.
 

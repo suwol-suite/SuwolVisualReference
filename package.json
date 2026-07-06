@@ -37,6 +37,7 @@
     "dist:linux:release": "npm run icons:generate && npm run build && electron-builder --linux AppImage zip --publish never",
     "release:zip:win": "npm run dist:win",
     "release:zip:linux": "npm run dist:linux",
+    "release:normalize-linux-appimage": "node scripts/normalize-linux-appimage.mjs",
     "release:checksums": "node scripts/checksums.mjs",
     "verify:checksums": "node scripts/verify-checksums.mjs",
     "verify:release-assets": "node scripts/verify-release-assets.mjs",

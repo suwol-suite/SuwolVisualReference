@@ -112,6 +112,9 @@ jobs:
       - name: Build Linux release artifacts
         run: npm run dist:linux:release
 
+      - name: Normalize Linux AppImage metadata
+        run: npm run release:normalize-linux-appimage -- --require
+
       - name: Verify packaged app
         run: npm run verify:packaged-app -- --platform=linux
 
