@@ -48,9 +48,15 @@ jobs:
           node --version
           npm --version
           xcodebuild -version
-          xcrun notarytool --help >/dev/null
-          xcrun stapler --help >/dev/null
+          xcrun -find notarytool
+          xcrun -find stapler
+          xcrun notarytool --version
           security find-identity -v -p codesigning
+          security find-identity -v -p codesigning | grep "Developer ID Application" || (
+            echo "Developer ID Application identity not found" && exit 1
+          )
+          NOTARY_HISTORY="$(xcrun notarytool history --keychain-profile "$NOTARYTOOL_PROFILE")"
+          printf '%s\n' "$NOTARY_HISTORY" | head -n 20
           xcrun notarytool history --keychain-profile "$NOTARYTOOL_PROFILE" --output-format json >/dev/null
 
       - name: Install dependencies
