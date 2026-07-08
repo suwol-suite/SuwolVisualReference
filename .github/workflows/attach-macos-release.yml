@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   attach-macos-release:
@@ -132,26 +133,30 @@ jobs:
         env:
           GPG_PRIVATE_KEY_B64: ${{ secrets.GPG_PRIVATE_KEY_B64 }}
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GNUPGHOME: ${{ runner.temp }}/gnupg
         run: |
           set -euo pipefail
+          mkdir -p "$GNUPGHOME"
+          chmod 700 "$GNUPGHOME"
           umask 077
           if [ -n "${GPG_PRIVATE_KEY_B64:-}" ]; then
-            if ! printf '%s' "$GPG_PRIVATE_KEY_B64" | base64 --decode > private.asc 2>/tmp/gpg-key-decode.log; then
-              printf '%s' "$GPG_PRIVATE_KEY_B64" > private.asc
+            if ! printf '%s' "$GPG_PRIVATE_KEY_B64" | base64 --decode > "$RUNNER_TEMP/suwol-release-private-key.asc" 2>/tmp/gpg-key-decode.log; then
+              printf '%s' "$GPG_PRIVATE_KEY_B64" > "$RUNNER_TEMP/suwol-release-private-key.asc"
             fi
           elif [ -n "${GPG_PRIVATE_KEY:-}" ]; then
-            printf '%s' "$GPG_PRIVATE_KEY" > private.asc
+            printf '%s' "$GPG_PRIVATE_KEY" > "$RUNNER_TEMP/suwol-release-private-key.asc"
           else
-            echo "GPG_PRIVATE_KEY_B64 or GPG_PRIVATE_KEY secret is missing."
+            echo "No GPG private key secret was provided. Set either GPG_PRIVATE_KEY_B64 or GPG_PRIVATE_KEY."
             exit 1
           fi
-          gpg --batch --import private.asc
-          rm -f private.asc
+          gpg --batch --import "$RUNNER_TEMP/suwol-release-private-key.asc"
+          rm -f "$RUNNER_TEMP/suwol-release-private-key.asc"
 
       - name: Sign checksums
         shell: bash
         env:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GNUPGHOME: ${{ runner.temp }}/gnupg
         run: |
           set -euo pipefail
           test -n "$GPG_PASSPHRASE"

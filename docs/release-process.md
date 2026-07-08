@@ -88,6 +88,8 @@ Do not build universal or Intel macOS assets for this release line. Do not pass 
 
 If the tag already exists and a tag-triggered run fails after a workflow fix, run the Release workflow manually with `workflow_dispatch` and the existing release tag.
 
+For a workflow-only recovery of an existing tag, use GitHub Actions with `Use workflow from: main` and set `release_tag` to the existing tag, such as `v0.2.3`. Running from `main` is important because running from the tag can use the older workflow file stored at that tag.
+
 Use tag deletion/recreation only when the user explicitly approves it.
 
 ## Release Assets

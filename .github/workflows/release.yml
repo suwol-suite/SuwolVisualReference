@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   build-windows:
@@ -187,26 +188,32 @@ jobs:
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
 
       - name: Import GPG private key
-        run: |
-          set -euo pipefail
-          umask 077
-          if [ -n "${GPG_PRIVATE_KEY_B64:-}" ]; then
-            if ! printf '%s' "$GPG_PRIVATE_KEY_B64" | base64 --decode > private.asc 2>/tmp/gpg-key-decode.log; then
-              printf '%s' "$GPG_PRIVATE_KEY_B64" > private.asc
-            fi
-          elif [ -n "${GPG_PRIVATE_KEY:-}" ]; then
-            printf '%s' "$GPG_PRIVATE_KEY" > private.asc
-          else
-            echo "GPG_PRIVATE_KEY_B64 or GPG_PRIVATE_KEY secret is missing."
-            exit 1
-          fi
-          gpg --batch --import private.asc
-          rm -f private.asc
         env:
           GPG_PRIVATE_KEY_B64: ${{ secrets.GPG_PRIVATE_KEY_B64 }}
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GNUPGHOME: ${{ runner.temp }}/gnupg
+        run: |
+          set -euo pipefail
+          mkdir -p "$GNUPGHOME"
+          chmod 700 "$GNUPGHOME"
+          umask 077
+          if [ -n "${GPG_PRIVATE_KEY_B64:-}" ]; then
+            if ! printf '%s' "$GPG_PRIVATE_KEY_B64" | base64 --decode > "$RUNNER_TEMP/suwol-release-private-key.asc" 2>/tmp/gpg-key-decode.log; then
+              printf '%s' "$GPG_PRIVATE_KEY_B64" > "$RUNNER_TEMP/suwol-release-private-key.asc"
+            fi
+          elif [ -n "${GPG_PRIVATE_KEY:-}" ]; then
+            printf '%s' "$GPG_PRIVATE_KEY" > "$RUNNER_TEMP/suwol-release-private-key.asc"
+          else
+            echo "No GPG private key secret was provided. Set either GPG_PRIVATE_KEY_B64 or GPG_PRIVATE_KEY."
+            exit 1
+          fi
+          gpg --batch --import "$RUNNER_TEMP/suwol-release-private-key.asc"
+          rm -f "$RUNNER_TEMP/suwol-release-private-key.asc"
 
       - name: Sign checksums
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GNUPGHOME: ${{ runner.temp }}/gnupg
         run: |
           set -euo pipefail
           test -n "$GPG_PASSPHRASE"
@@ -219,10 +226,10 @@ jobs:
               "$checksum_file"
             test -s "${checksum_file}.asc"
           done
-        env:
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Verify signed checksums
+        env:
+          GNUPGHOME: ${{ runner.temp }}/gnupg
         run: |
           set -euo pipefail
           gpg --import suwol-release-public-key.asc
@@ -240,15 +247,30 @@ jobs:
           if [ ! -f "$NOTES_FILE" ]; then
             NOTES_FILE=".github/release-template.md"
           fi
-          gh release create "$RELEASE_TAG" \
-            "release-assets/SuwolVisualReference-${VERSION}-win-x64.zip" \
-            "release-assets/SuwolVisualReference-${VERSION}-linux-x64.AppImage" \
-            "release-assets/latest-linux.yml" \
-            "release-assets/checksums.txt" \
-            "release-assets/checksums.txt.asc" \
-            "release-assets/SuwolVisualReference-${VERSION}-checksums.txt" \
-            "release-assets/SuwolVisualReference-${VERSION}-checksums.txt.asc" \
-            "suwol-release-public-key.asc" \
-            --verify-tag \
-            --title "Suwol Visual Reference ${RELEASE_TAG}" \
-            --notes-file "$NOTES_FILE"
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" \
+              "release-assets/SuwolVisualReference-${VERSION}-win-x64.zip" \
+              "release-assets/SuwolVisualReference-${VERSION}-linux-x64.AppImage" \
+              "release-assets/latest-linux.yml" \
+              "release-assets/checksums.txt" \
+              "release-assets/checksums.txt.asc" \
+              "release-assets/SuwolVisualReference-${VERSION}-checksums.txt" \
+              "release-assets/SuwolVisualReference-${VERSION}-checksums.txt.asc" \
+              "suwol-release-public-key.asc" \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+          else
+            gh release create "$RELEASE_TAG" \
+              "release-assets/SuwolVisualReference-${VERSION}-win-x64.zip" \
+              "release-assets/SuwolVisualReference-${VERSION}-linux-x64.AppImage" \
+              "release-assets/latest-linux.yml" \
+              "release-assets/checksums.txt" \
+              "release-assets/checksums.txt.asc" \
+              "release-assets/SuwolVisualReference-${VERSION}-checksums.txt" \
+              "release-assets/SuwolVisualReference-${VERSION}-checksums.txt.asc" \
+              "suwol-release-public-key.asc" \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "Suwol Visual Reference ${RELEASE_TAG}" \
+              --notes-file "$NOTES_FILE"
+          fi
