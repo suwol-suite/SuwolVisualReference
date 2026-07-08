@@ -11,7 +11,6 @@ const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json
 const args = process.argv.slice(2);
 const releaseDir = path.resolve(repoRoot, args.find((arg) => !arg.startsWith('--')) ?? 'release');
 const requireAll = args.includes('--require-all');
-const allowMissingLinux = args.includes('--allow-missing-linux') || (!requireAll && process.platform === 'win32');
 const allowMissingWindows = args.includes('--allow-missing-windows') || (!requireAll && process.platform === 'linux');
 const version = String(packageJson.version);
 const expectedArtifacts = [
@@ -21,13 +20,6 @@ const expectedArtifacts = [
     required: requireAll || !allowMissingWindows,
     executableNames: ['Suwol Visual Reference.exe'],
     iconNames: ['resources/build/icon.ico', 'resources/build/icon.png']
-  },
-  {
-    platform: 'linux',
-    fileName: `SuwolVisualReference-${version}-linux-x64.zip`,
-    required: requireAll || !allowMissingLinux,
-    executableNames: ['Suwol Visual Reference', 'suwol-visual-reference', 'SuwolVisualReference'],
-    iconNames: ['resources/build/icon.png']
   }
 ];
 

@@ -120,7 +120,6 @@ jobs:
         run: |
           set -euo pipefail
           cp release/SuwolVisualReference-*-mac-arm64.dmg release-assets/
-          cp release/SuwolVisualReference-*-mac-arm64.zip release-assets/
           if [ -f release/latest-mac.yml ]; then
             cp release/latest-mac.yml release-assets/
           fi
@@ -167,7 +166,6 @@ jobs:
           VERSION="${TAG#v}"
           gh release upload "$TAG" \
             release-assets/SuwolVisualReference-${VERSION}-mac-arm64.dmg \
-            release-assets/SuwolVisualReference-${VERSION}-mac-arm64.zip \
             release-assets/checksums.txt \
             release-assets/checksums.txt.asc \
             release-assets/SuwolVisualReference-${VERSION}-checksums.txt \

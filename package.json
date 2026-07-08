@@ -1,6 +1,6 @@
 {
   "name": "suwol-visual-reference",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Local visual reference manager for game developers.",
   "author": "SuwolSoft",
   "private": true,
@@ -35,11 +35,11 @@
     "pack:linux": "npm run icons:generate && npm run build && electron-builder --linux --dir",
     "pack:mac:arm64": "npm run icons:generate && npm run build && electron-builder --mac --arm64 --dir",
     "dist:win": "npm run icons:generate && npm run build && electron-builder --win zip --publish never",
-    "dist:linux": "npm run icons:generate && npm run build && electron-builder --linux zip --publish never",
-    "dist:linux:release": "npm run icons:generate && npm run build && electron-builder --linux AppImage zip --publish never",
-    "dist:mac:arm64": "npm run icons:generate && npm run build && electron-builder --mac dmg zip --arm64 --publish never",
+    "dist:linux": "npm run icons:generate && npm run build && electron-builder --linux AppImage --publish never",
+    "dist:linux:release": "npm run icons:generate && npm run build && electron-builder --linux AppImage --publish never",
+    "dist:mac:arm64": "npm run icons:generate && npm run build && electron-builder --mac dmg --arm64 --publish never",
     "release:zip:win": "npm run dist:win",
-    "release:zip:linux": "npm run dist:linux",
+    "release:appimage:linux": "npm run dist:linux",
     "release:normalize-linux-appimage": "node scripts/normalize-linux-appimage.mjs",
     "release:checksums": "node scripts/checksums.mjs",
     "verify:checksums": "node scripts/verify-checksums.mjs",
@@ -149,12 +149,6 @@
           "arch": [
             "arm64"
           ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "arm64"
-          ]
         }
       ],
       "artifactName": "SuwolVisualReference-${version}-mac-${arch}.${ext}"
@@ -165,12 +159,6 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "zip",
           "arch": [
             "x64"
           ]

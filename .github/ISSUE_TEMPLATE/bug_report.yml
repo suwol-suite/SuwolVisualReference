@@ -31,7 +31,7 @@ body:
       label: Distribution package
       options:
         - Windows ZIP
-        - Linux ZIP
+        - Linux AppImage
         - Development build
         - Other
     validations:

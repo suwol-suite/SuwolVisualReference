@@ -1,6 +1,6 @@
 # Release Process
 
-This project publishes portable ZIP builds and a Linux AppImage through GitHub Actions. macOS arm64 artifacts are built and attached later through a separate manual workflow after diagnostics pass.
+This project publishes a Windows ZIP and a Linux AppImage through GitHub Actions. macOS arm64 artifacts are built and attached later through a separate manual workflow after diagnostics pass.
 
 ## Version Policy
 
@@ -46,7 +46,7 @@ npm.cmd run verify:packaged-app
 npm.cmd run release:verify
 ```
 
-Local Windows verification may only have the Windows ZIP. The release workflow verifies Windows ZIP, Linux ZIP, Linux AppImage, and `latest-linux.yml` after downloading artifacts from both OS jobs.
+Local Windows verification may only have the Windows ZIP. The release workflow verifies Windows ZIP, Linux AppImage, and `latest-linux.yml` after downloading artifacts from both OS jobs.
 
 ## Tagging
 
@@ -62,7 +62,7 @@ Do not delete or recreate a local or remote release tag without explicit user ap
 ## GitHub Actions Release Flow
 
 1. Windows runner builds the Windows ZIP.
-2. Linux runner builds the Linux AppImage and ZIP artifacts.
+2. Linux runner builds the Linux AppImage artifact.
 3. Release job downloads both artifacts.
 4. OS build jobs verify unpacked packaged apps before upload.
 5. Release job creates `checksums.txt` and `SuwolVisualReference-<version>-checksums.txt`.
@@ -79,7 +79,7 @@ macOS builds are not part of push CI or the default tag release. Use this sequen
 1. Run `.github/workflows/macos-build-diagnostics.yml` manually.
 2. Confirm Node, Xcode, keychain, signing identity, notary profile, native modules, DMG, notarization, and stapling diagnostics pass.
 3. Run `.github/workflows/attach-macos-release.yml` manually with the existing release tag.
-4. Confirm macOS arm64 DMG, macOS arm64 ZIP, and `latest-mac.yml` were attached to the existing release.
+4. Confirm macOS arm64 DMG and optional `latest-mac.yml` were attached to the existing release.
 5. Confirm `checksums.txt`, `SuwolVisualReference-<version>-checksums.txt`, and their `.asc` signatures were refreshed.
 
 Do not build universal or Intel macOS assets for this release line. Do not pass Apple notary passwords on the command line; use the stored `suwol-notary-profile`.
@@ -96,9 +96,7 @@ Expected asset names:
 
 - `SuwolVisualReference-<version>-win-x64.zip`
 - `SuwolVisualReference-<version>-linux-x64.AppImage`
-- `SuwolVisualReference-<version>-linux-x64.zip`
 - `SuwolVisualReference-<version>-mac-arm64.dmg` after macOS attachment
-- `SuwolVisualReference-<version>-mac-arm64.zip` after macOS attachment
 - `latest-linux.yml`
 - `latest-mac.yml` after macOS attachment
 - `checksums.txt`
@@ -109,4 +107,4 @@ Expected asset names:
 
 The app itself keeps the user-facing name `Suwol Visual Reference`.
 
-Linux AppImage update QA is separate from ZIP smoke QA. Confirm that Settings/About reports update support in the AppImage, that ZIP builds report automatic updates as unsupported, and that `latest-linux.yml` is included in checksums.
+Linux AppImage update QA is separate from Windows ZIP smoke QA. Confirm that Settings/About reports update support in the AppImage, that Windows ZIP builds report automatic updates as unsupported, and that `latest-linux.yml` is included in checksums.

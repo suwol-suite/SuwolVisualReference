@@ -4,6 +4,16 @@
 
 - No unreleased changes.
 
+## 0.2.3 - 2026-07-08
+
+### Fixed
+
+- Updated release packaging so Windows is the only ZIP distribution target.
+- Removed Linux ZIP from required release assets, checksum requirements, release upload, and ZIP verification.
+- Removed macOS ZIP from the manual diagnostics and release attachment workflows.
+- Kept Linux release output focused on AppImage plus `latest-linux.yml`.
+- Kept macOS release attachment focused on signed and notarized arm64 DMG plus optional update metadata.
+
 ## 0.2.2 - 2026-07-08
 
 ### Added

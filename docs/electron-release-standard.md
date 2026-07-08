@@ -27,7 +27,6 @@ The normal release workflow is `.github/workflows/release.yml`.
 It builds and publishes:
 
 - Windows x64 ZIP
-- Linux x64 ZIP
 - Linux x64 AppImage
 - `latest-linux.yml`
 - SHA-256 checksums
@@ -42,9 +41,9 @@ macOS release work is separate from core Windows/Linux publishing.
 
 Use `.github/workflows/macos-build-diagnostics.yml` first to validate the self-hosted macOS environment, signing identity, native modules, hardened runtime, DMG creation, notarization, and stapling. This workflow is manual only.
 
-When diagnostics pass, use `.github/workflows/attach-macos-release.yml` with the release tag. It builds macOS arm64 artifacts, notarizes the DMG, uploads macOS assets to the existing GitHub Release, and refreshes checksums and GPG signatures.
+When diagnostics pass, use `.github/workflows/attach-macos-release.yml` with the release tag. It builds the macOS arm64 DMG, notarizes it, uploads macOS assets to the existing GitHub Release, and refreshes checksums and GPG signatures.
 
-macOS support is arm64 only. Do not build universal or Intel macOS assets for this release line.
+macOS support is arm64 DMG only. Do not build universal, Intel, or ZIP macOS assets for this release line.
 
 ## macOS Runner
 

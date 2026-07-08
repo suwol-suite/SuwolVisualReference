@@ -127,7 +127,6 @@ jobs:
           name: linux-artifacts
           path: |
             release/SuwolVisualReference-*-linux-x64.AppImage
-            release/SuwolVisualReference-*-linux-x64.zip
             release/latest-linux.yml
           if-no-files-found: error
 
@@ -235,7 +234,6 @@ jobs:
           gh release create "$RELEASE_TAG" \
             "release-assets/SuwolVisualReference-${VERSION}-win-x64.zip" \
             "release-assets/SuwolVisualReference-${VERSION}-linux-x64.AppImage" \
-            "release-assets/SuwolVisualReference-${VERSION}-linux-x64.zip" \
             "release-assets/latest-linux.yml" \
             "release-assets/checksums.txt" \
             "release-assets/checksums.txt.asc" \

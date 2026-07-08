@@ -12,11 +12,9 @@ No Windows signing certificate is configured yet. Signed release builds are plan
 
 macOS builds are not distributed.
 
-## Linux ZIP Distribution
+## Linux AppImage Distribution
 
-Linux is distributed as a ZIP archive. Some desktop environments may require setting executable permission manually after extraction.
-
-Linux ZIP builds do not support automatic updates. Download a new ZIP from GitHub Releases when updating manually.
+Linux is distributed as an AppImage. Some desktop environments may require setting executable permission manually before launch.
 
 ## Linux AppImage Updates
 
@@ -30,7 +28,7 @@ GitHub Actions runs Linux smoke tests under Xvfb and passes `--no-sandbox` to El
 
 ## Native Modules
 
-The app uses native dependencies, including `better-sqlite3` and `sharp`. Windows and Linux release ZIPs are built on matching OS runners to avoid cross-built native modules, but unusual Linux environments may still expose native runtime issues.
+The app uses native dependencies, including `better-sqlite3` and `sharp`. Windows ZIP and Linux AppImage release artifacts are built on matching OS runners to avoid cross-built native modules, but unusual Linux environments may still expose native runtime issues.
 
 ## Media Preview Scope
 
@@ -50,7 +48,7 @@ Large libraries load assets in 500-item pages. This keeps the UI responsive, but
 
 ## Automatic Updates
 
-Automatic updates are enabled only for Linux AppImage builds. Windows ZIP, Linux ZIP, macOS, development, and unpacked runs show an unsupported reason and link to GitHub Releases for manual downloads.
+Automatic updates are enabled only for Linux AppImage builds. Windows ZIP, macOS, development, and unpacked runs show an unsupported reason and link to GitHub Releases for manual downloads.
 
 ## Diagnostics And Logs
 

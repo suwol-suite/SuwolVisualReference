@@ -3,7 +3,7 @@
 ## Downloads
 
 - Windows ZIP
-- Linux ZIP
+- Linux AppImage
 - SHA-256 checksums
 
 ## Notes

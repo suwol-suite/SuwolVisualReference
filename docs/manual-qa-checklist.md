@@ -7,11 +7,6 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Download the Windows ZIP from GitHub Releases.
 - [ ] Extract the Windows ZIP and run `Suwol Visual Reference.exe`.
 - [ ] Run `Suwol Visual Reference.exe --version` and confirm the version.
-- [ ] Download the Linux ZIP from GitHub Releases.
-- [ ] Extract the Linux ZIP.
-- [ ] Add execute permission on Linux if needed.
-- [ ] Launch the Linux app.
-- [ ] Run the Linux executable with `--version` and confirm the version.
 - [ ] Download the Linux AppImage from GitHub Releases.
 - [ ] Add execute permission to the Linux AppImage if needed.
 - [ ] Run the Linux AppImage with `--version` and confirm the version.
@@ -109,17 +104,16 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Use the update check button in a Linux AppImage and confirm an update available/latest/error state is shown.
 - [ ] Confirm download progress is shown when downloading an available update.
 - [ ] Confirm restart/install is offered only after download completes.
-- [ ] Open Settings/About in Windows ZIP or Linux ZIP and confirm automatic updates are shown as unsupported.
+- [ ] Open Settings/About in Windows ZIP and confirm automatic updates are shown as unsupported.
 - [ ] Use the GitHub Releases button and confirm it opens the releases page.
 
 ## Release Assets
 
 - [ ] Confirm Windows ZIP exists.
 - [ ] Confirm Linux AppImage exists.
-- [ ] Confirm Linux ZIP exists.
 - [ ] Confirm `latest-linux.yml` exists.
 - [ ] Confirm checksums file exists.
-- [ ] Confirm checksums include Windows ZIP, Linux ZIP, Linux AppImage, and `latest-linux.yml`.
+- [ ] Confirm checksums include Windows ZIP, Linux AppImage, and `latest-linux.yml`.
 - [ ] Confirm checksums signature exists.
 - [ ] Import `suwol-release-public-key.asc` and verify `checksums.txt.asc`.
-- [ ] Verify ZIP hashes against the checksums file.
+- [ ] Verify release asset hashes against the checksums file.

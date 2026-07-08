@@ -14,7 +14,6 @@ const checksumPath = path.join(releaseDir, `SuwolVisualReference-${version}-chec
 const expectedFiles = [
   `SuwolVisualReference-${version}-win-x64.zip`,
   `SuwolVisualReference-${version}-linux-x64.AppImage`,
-  `SuwolVisualReference-${version}-linux-x64.zip`,
   'latest-linux.yml'
 ];
 const releaseArtifactPattern = /^([a-fA-F0-9]{64})\s+(.+\.(?:zip|AppImage|deb|rpm|dmg)|latest-(?:linux|mac)\.yml)$/u;

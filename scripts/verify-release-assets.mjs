@@ -21,12 +21,6 @@ const expectedAssets = [
   },
   {
     platform: 'linux',
-    fileName: `SuwolVisualReference-${version}-linux-x64.zip`,
-    required: requireAll || !allowMissingLinux,
-    kind: 'archive'
-  },
-  {
-    platform: 'linux',
     fileName: `SuwolVisualReference-${version}-linux-x64.AppImage`,
     required: requireAll || !allowMissingLinux,
     kind: 'appimage'

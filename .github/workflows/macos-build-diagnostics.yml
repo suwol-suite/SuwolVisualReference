@@ -112,7 +112,6 @@ jobs:
           name: macos-diagnostics
           path: |
             release/SuwolVisualReference-*-mac-arm64.dmg
-            release/SuwolVisualReference-*-mac-arm64.zip
             release/latest-mac.yml
             diagnostics/**
           if-no-files-found: error
