@@ -1,0 +1,118 @@
+name: macOS Build Diagnostics
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos-build-diagnostics:
+    name: macOS ARM64 Build Diagnostics
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      NOTARYTOOL_PROFILE: suwol-notary-profile
+      NOTARY_TIMEOUT_MINUTES: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Unlock macOS keychain
+        shell: bash
+        env:
+          MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${MAC_KEYCHAIN_PASSWORD:-}" ]; then
+            echo "MAC_KEYCHAIN_PASSWORD secret is missing."
+            exit 1
+          fi
+
+          LOGIN_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
+
+          security unlock-keychain -p "$MAC_KEYCHAIN_PASSWORD" "$LOGIN_KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$LOGIN_KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MAC_KEYCHAIN_PASSWORD" "$LOGIN_KEYCHAIN"
+          security default-keychain -s "$LOGIN_KEYCHAIN"
+          security list-keychains -d user -s "$LOGIN_KEYCHAIN"
+
+      - name: Show host diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          npm --version
+          xcodebuild -version
+          xcrun notarytool --help >/dev/null
+          xcrun stapler --help >/dev/null
+          security find-identity -v -p codesigning
+          xcrun notarytool history --keychain-profile "$NOTARYTOOL_PROFILE" --output-format json >/dev/null
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Rebuild native dependencies
+        run: npm run rebuild:native
+
+      - name: Validate source
+        run: |
+          npm run icons:generate
+          npm run icons:check
+          npm run typecheck
+          npm run lint
+          npm run test:selection
+          npm run test:updates
+          npm run i18n:check
+          npm run license:check
+          npm run build
+
+      - name: Build macOS ARM64 artifacts
+        run: npm run dist:mac:arm64
+
+      - name: Re-sign native payloads if needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find release -maxdepth 2 -name '*.app' -type d | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle found."
+            exit 1
+          fi
+          npm run mac:resign-app -- "$APP_PATH"
+
+      - name: Verify app signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find release -maxdepth 2 -name '*.app' -type d | head -n 1)"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          while IFS= read -r native_file; do
+            codesign --verify --strict --verbose=2 "$native_file"
+          done < <(find "$APP_PATH" -type f \( -name '*.node' -o -name '*.dylib' \))
+
+      - name: Notarize and staple DMG
+        shell: bash
+        run: |
+          set -euo pipefail
+          DMG_PATH="$(find release -maxdepth 1 -name 'SuwolVisualReference-*-mac-arm64.dmg' -type f | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "No macOS DMG found."
+            exit 1
+          fi
+          npm run mac:notarize-dmg -- "$DMG_PATH"
+
+      - name: Upload diagnostics artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-diagnostics
+          path: |
+            release/SuwolVisualReference-*-mac-arm64.dmg
+            release/SuwolVisualReference-*-mac-arm64.zip
+            release/latest-mac.yml
+            diagnostics/**
+          if-no-files-found: error

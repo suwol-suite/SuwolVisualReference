@@ -1,6 +1,6 @@
 # Packaging Notes
 
-Suwol Visual Reference is distributed as a Windows ZIP plus Linux AppImage and ZIP artifacts for x64. Linux AppImage builds support automatic update checks through GitHub Releases. Windows installers, Windows automatic updates, code signing, and macOS artifacts are not part of the current release line.
+Suwol Visual Reference is distributed first as a Windows ZIP plus Linux AppImage and ZIP artifacts for x64. Linux AppImage builds support automatic update checks through GitHub Releases. macOS arm64 artifacts are built, signed, notarized, and attached later through manual workflows after diagnostics pass. Windows installers, Windows automatic updates, and public macOS distribution are not part of the default core release.
 
 ## Artifact Names
 
@@ -9,7 +9,10 @@ Expected release assets:
 - `SuwolVisualReference-<version>-win-x64.zip`
 - `SuwolVisualReference-<version>-linux-x64.AppImage`
 - `SuwolVisualReference-<version>-linux-x64.zip`
+- `SuwolVisualReference-<version>-mac-arm64.dmg` after macOS attachment
+- `SuwolVisualReference-<version>-mac-arm64.zip` after macOS attachment
 - `latest-linux.yml`
+- `latest-mac.yml` after macOS attachment
 - `checksums.txt`
 - `checksums.txt.asc`
 - `SuwolVisualReference-<version>-checksums.txt`
@@ -129,7 +132,7 @@ npm run verify:packaged-app -- --platform=linux
 npm.cmd run release:checksums
 ```
 
-`scripts/checksums.mjs` hashes matching `SuwolVisualReference-<version>-*.zip`, `.AppImage`, `.deb`, `.rpm`, and `latest-linux.yml` files in `release/` by default and writes both `SuwolVisualReference-<version>-checksums.txt` and `checksums.txt`.
+`scripts/checksums.mjs` hashes matching `SuwolVisualReference-<version>-*.zip`, `.AppImage`, `.deb`, `.rpm`, `.dmg`, `latest-linux.yml`, and `latest-mac.yml` files in `release/` by default and writes both `SuwolVisualReference-<version>-checksums.txt` and `checksums.txt`.
 
 `scripts/verify-checksums.mjs` reads the checksum file, recalculates SHA-256 for each listed release artifact, and fails if an artifact is missing or a hash differs.
 
@@ -155,6 +158,25 @@ electron-builder may emit AppImage files with an `x86_64` architecture suffix. T
 
 The normal release trigger is a `v*` tag push. If a tag-triggered run fails after the tag already exists, the same workflow can be run manually with `workflow_dispatch` and the existing tag name, such as `v0.2.1`, without deleting or recreating the tag.
 
+## macOS Arm64 Attachment
+
+macOS release builds are manual and require a trusted Apple Silicon self-hosted runner labeled `self-hosted`, `macOS`, and `ARM64`.
+
+Required repository secrets:
+
+- `CSC_LINK`
+- `CSC_KEY_PASSWORD`
+- `APPLE_TEAM_ID`
+- `MAC_KEYCHAIN_PASSWORD`
+- `GPG_PRIVATE_KEY_B64`
+- `GPG_PASSPHRASE`
+
+The runner must have Xcode command line tools, a Developer ID Application certificate with private key, Developer ID CA chain, Node.js 22, and a stored notary profile named `suwol-notary-profile`.
+
+Run `.github/workflows/macos-build-diagnostics.yml` first. It unlocks the keychain, verifies signing and notary access, builds macOS arm64 only, checks native `.node` and `.dylib` payload signatures, notarizes the DMG, staples it, and uploads diagnostic artifacts.
+
+After diagnostics pass, run `.github/workflows/attach-macos-release.yml` with the existing tag. It uploads macOS arm64 DMG/ZIP/update metadata to the existing GitHub Release and refreshes checksum files and GPG signatures. Do not build universal or Intel macOS artifacts.
+
 ## Security Notes
 
 - Renderer `nodeIntegration` remains disabled.
@@ -167,6 +189,6 @@ The normal release trigger is a `v*` tag push. If a tag-triggered run fails afte
 ## Remaining Distribution Work
 
 - Add Windows code signing to reduce SmartScreen warnings.
-- Add macOS signing and notarization before distributing macOS artifacts.
+- Complete the self-hosted macOS diagnostics and attachment run before distributing macOS artifacts.
 - Add manual release QA for extracted ZIP folders on clean Windows and Linux machines.
 - Revisit Electron, Vite, and electron-vite major upgrades in a dedicated compatibility pass.

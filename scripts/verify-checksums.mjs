@@ -17,7 +17,7 @@ const expectedFiles = [
   `SuwolVisualReference-${version}-linux-x64.zip`,
   'latest-linux.yml'
 ];
-const releaseArtifactPattern = /^([a-fA-F0-9]{64})\s+(.+\.(?:zip|AppImage|deb|rpm)|latest-linux\.yml)$/u;
+const releaseArtifactPattern = /^([a-fA-F0-9]{64})\s+(.+\.(?:zip|AppImage|deb|rpm|dmg)|latest-(?:linux|mac)\.yml)$/u;
 
 if (!fs.existsSync(checksumPath)) {
   fail(`checksum file does not exist: ${relativePath(checksumPath)}`);

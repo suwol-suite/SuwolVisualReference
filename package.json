@@ -23,6 +23,7 @@
     "lint": "eslint .",
     "i18n:check": "node scripts/check-i18n.mjs",
     "icons:generate": "node scripts/generate-icons.mjs",
+    "icons:check": "node scripts/check-icons.mjs",
     "license:report": "node scripts/license-report.mjs --write",
     "license:check": "node scripts/license-report.mjs --check",
     "rebuild:native": "electron-builder install-app-deps",
@@ -32,9 +33,11 @@
     "test:library-perf": "npm run build && electron out/main/index.js --library-perf-test",
     "pack:win": "npm run icons:generate && npm run build && electron-builder --win --dir",
     "pack:linux": "npm run icons:generate && npm run build && electron-builder --linux --dir",
+    "pack:mac:arm64": "npm run icons:generate && npm run build && electron-builder --mac --arm64 --dir",
     "dist:win": "npm run icons:generate && npm run build && electron-builder --win zip --publish never",
     "dist:linux": "npm run icons:generate && npm run build && electron-builder --linux zip --publish never",
     "dist:linux:release": "npm run icons:generate && npm run build && electron-builder --linux AppImage zip --publish never",
+    "dist:mac:arm64": "npm run icons:generate && npm run build && electron-builder --mac dmg zip --arm64 --publish never",
     "release:zip:win": "npm run dist:win",
     "release:zip:linux": "npm run dist:linux",
     "release:normalize-linux-appimage": "node scripts/normalize-linux-appimage.mjs",
@@ -43,6 +46,8 @@
     "verify:release-assets": "node scripts/verify-release-assets.mjs",
     "verify:release:zip": "node scripts/verify-release-zip.mjs",
     "verify:packaged-app": "node scripts/verify-packaged-app.mjs",
+    "mac:notarize-dmg": "node scripts/notarize-dmg.mjs",
+    "mac:resign-app": "node scripts/resign-mac-app.mjs",
     "test:selection": "node scripts/test-selection-utils.mjs && node scripts/test-update-support.mjs",
     "test:updates": "node scripts/test-update-support.mjs",
     "release:verify": "npm run release:checksums && npm run verify:checksums && npm run verify:release-assets && npm run verify:release:zip && npm run verify:packaged-app"
@@ -132,7 +137,27 @@
       "artifactName": "SuwolVisualReference-${version}-win-${arch}.${ext}"
     },
     "mac": {
-      "icon": "build/icon.icns"
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "forceCodeSigning": true,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "SuwolVisualReference-${version}-mac-${arch}.${ext}"
     },
     "linux": {
       "icon": "build/icon.png",

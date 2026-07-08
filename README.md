@@ -30,7 +30,7 @@ Screenshots are planned after the first public ZIP release.
 
 - Windows x64: ZIP distribution.
 - Linux x64: ZIP and AppImage distributions.
-- macOS: not distributed yet.
+- macOS arm64: planned as a separately signed and notarized release attachment.
 
 Automatic updates are supported only in the Linux AppImage build. Windows ZIP and Linux ZIP builds use manual updates from GitHub Releases.
 
@@ -49,7 +49,7 @@ Update policy:
 - Linux AppImage: automatic update checks are supported.
 - Windows ZIP: manual updates from GitHub Releases.
 - Linux ZIP: manual updates from GitHub Releases.
-- macOS: planned for a later milestone.
+- macOS arm64: planned as a separately signed and notarized release attachment.
 
 ### Windows ZIP
 

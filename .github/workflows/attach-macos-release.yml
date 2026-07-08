@@ -1,0 +1,178 @@
+name: Attach macOS Release Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag, for example v0.2.1'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  attach-macos-release:
+    name: Attach macOS ARM64 Assets
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 120
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      GH_TOKEN: ${{ github.token }}
+      NOTARYTOOL_PROFILE: suwol-notary-profile
+      NOTARY_TIMEOUT_MINUTES: 120
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Unlock macOS keychain
+        shell: bash
+        env:
+          MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${MAC_KEYCHAIN_PASSWORD:-}" ]; then
+            echo "MAC_KEYCHAIN_PASSWORD secret is missing."
+            exit 1
+          fi
+
+          LOGIN_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
+
+          security unlock-keychain -p "$MAC_KEYCHAIN_PASSWORD" "$LOGIN_KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$LOGIN_KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MAC_KEYCHAIN_PASSWORD" "$LOGIN_KEYCHAIN"
+          security default-keychain -s "$LOGIN_KEYCHAIN"
+          security list-keychains -d user -s "$LOGIN_KEYCHAIN"
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          VERSION="${TAG#v}"
+          PACKAGE_VERSION="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
+          if [ "$VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "Tag version $VERSION does not match package.json version $PACKAGE_VERSION"
+            exit 1
+          fi
+          gh release view "$TAG" >/dev/null
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Rebuild native dependencies
+        run: npm run rebuild:native
+
+      - name: Validate source
+        run: |
+          npm run icons:generate
+          npm run icons:check
+          npm run typecheck
+          npm run lint
+          npm run test:selection
+          npm run test:updates
+          npm run i18n:check
+          npm run license:check
+          npm run build
+
+      - name: Build macOS ARM64 artifacts
+        run: npm run dist:mac:arm64
+
+      - name: Re-sign native payloads if needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find release -maxdepth 2 -name '*.app' -type d | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle found."
+            exit 1
+          fi
+          npm run mac:resign-app -- "$APP_PATH"
+
+      - name: Notarize and staple DMG
+        shell: bash
+        run: |
+          set -euo pipefail
+          DMG_PATH="$(find release -maxdepth 1 -name 'SuwolVisualReference-*-mac-arm64.dmg' -type f | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "No macOS DMG found."
+            exit 1
+          fi
+          npm run mac:notarize-dmg -- "$DMG_PATH"
+
+      - name: Download existing release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf release-assets
+          mkdir -p release-assets
+          gh release download "${{ inputs.tag }}" --dir release-assets --clobber
+          rm -f release-assets/checksums.txt \
+            release-assets/checksums.txt.asc \
+            release-assets/SuwolVisualReference-*-checksums.txt \
+            release-assets/SuwolVisualReference-*-checksums.txt.asc
+
+      - name: Add macOS assets and update checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp release/SuwolVisualReference-*-mac-arm64.dmg release-assets/
+          cp release/SuwolVisualReference-*-mac-arm64.zip release-assets/
+          if [ -f release/latest-mac.yml ]; then
+            cp release/latest-mac.yml release-assets/
+          fi
+          node scripts/checksums.mjs release-assets
+          cd release-assets
+          sha256sum -c checksums.txt
+
+      - name: Import GPG private key
+        shell: bash
+        env:
+          GPG_PRIVATE_KEY_B64: ${{ secrets.GPG_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$GPG_PRIVATE_KEY_B64"
+          umask 077
+          echo "$GPG_PRIVATE_KEY_B64" | base64 --decode > private.asc
+          gpg --batch --import private.asc
+          rm -f private.asc
+
+      - name: Sign checksums
+        shell: bash
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$GPG_PASSPHRASE"
+          VERSION="${{ inputs.tag }}"
+          VERSION="${VERSION#v}"
+          cd release-assets
+          for checksum_file in checksums.txt "SuwolVisualReference-${VERSION}-checksums.txt"; do
+            printf '%s' "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+              --passphrase-fd 0 \
+              --armor --detach-sign \
+              --output "${checksum_file}.asc" \
+              "$checksum_file"
+            test -s "${checksum_file}.asc"
+          done
+
+      - name: Upload macOS assets and refreshed checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          VERSION="${TAG#v}"
+          gh release upload "$TAG" \
+            release-assets/SuwolVisualReference-${VERSION}-mac-arm64.dmg \
+            release-assets/SuwolVisualReference-${VERSION}-mac-arm64.zip \
+            release-assets/checksums.txt \
+            release-assets/checksums.txt.asc \
+            release-assets/SuwolVisualReference-${VERSION}-checksums.txt \
+            release-assets/SuwolVisualReference-${VERSION}-checksums.txt.asc \
+            --clobber
+          if [ -f release-assets/latest-mac.yml ]; then
+            gh release upload "$TAG" release-assets/latest-mac.yml --clobber
+          fi

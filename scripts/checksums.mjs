@@ -11,7 +11,8 @@ const version = String(packageJson.version);
 const artifactPrefix = `SuwolVisualReference-${version}-`;
 const checksumPath = path.join(releaseDir, `SuwolVisualReference-${version}-checksums.txt`);
 const plainChecksumPath = path.join(releaseDir, 'checksums.txt');
-const releaseArtifactPattern = /\.(?:zip|AppImage|deb|rpm)$/u;
+const releaseArtifactPattern = /\.(?:zip|AppImage|deb|rpm|dmg)$/u;
+const updateMetadataFiles = new Set(['latest-linux.yml', 'latest-mac.yml']);
 
 if (!fs.existsSync(releaseDir)) {
   console.error(`Release directory does not exist: ${path.relative(repoRoot, releaseDir)}`);
@@ -21,7 +22,7 @@ if (!fs.existsSync(releaseDir)) {
 const artifactFiles = fs
   .readdirSync(releaseDir)
   .filter(
-    (fileName) => (fileName.startsWith(artifactPrefix) && releaseArtifactPattern.test(fileName)) || fileName === 'latest-linux.yml'
+    (fileName) => (fileName.startsWith(artifactPrefix) && releaseArtifactPattern.test(fileName)) || updateMetadataFiles.has(fileName)
   )
   .sort((left, right) => left.localeCompare(right));
 

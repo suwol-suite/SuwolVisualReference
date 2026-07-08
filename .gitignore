@@ -6,7 +6,10 @@ build/*
 !build/icon.ico
 !build/icon.png
 !build/icon.icns
+!build/entitlements.mac.plist
+!build/entitlements.mac.inherit.plist
 release/
+diagnostics/
 .codex-run/
 .test-libraries/
 test-data/
@@ -25,6 +28,8 @@ fixtures/local/
 *.jks
 *.keystore
 *.token
+*.gpg
+*.passphrase
 secrets/
 
 # Release signing secrets
@@ -34,6 +39,9 @@ suwol-release-revocation.asc
 *.revocation.asc
 *private-key*.asc
 *revocation*.asc
+*private*
+*revocation*
+!suwol-release-public-key.asc
 
 *.sqlite
 *.sqlite-*
