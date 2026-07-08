@@ -4,6 +4,15 @@
 
 - No unreleased changes.
 
+## 0.2.4 - 2026-07-08
+
+### Fixed
+
+- Fixed the Release workflow manual dispatch tag handling by reading `github.event.inputs.release_tag`.
+- Manual Release workflow runs now reject branch names such as `main` and require a version tag like `v0.2.4`.
+- Kept the Windows ZIP, Linux AppImage, `latest-linux.yml`, checksum generation, GPG signing, and release upload flow aligned with the SuwolView release pattern.
+- v0.2.4 supersedes the failed v0.2.3 manual Release workflow run.
+
 ## 0.2.3 - 2026-07-08
 
 ### Fixed

@@ -166,9 +166,17 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            RELEASE_TAG="${{ inputs.release_tag }}"
+            RELEASE_TAG="${{ github.event.inputs.release_tag }}"
           else
             RELEASE_TAG="${GITHUB_REF_NAME}"
+          fi
+          if [ -z "$RELEASE_TAG" ]; then
+            echo "release_tag is required for workflow_dispatch"
+            exit 1
+          fi
+          if [[ "$RELEASE_TAG" != v* ]]; then
+            echo "release_tag must be a version tag such as v0.2.4, got: $RELEASE_TAG"
+            exit 1
           fi
           VERSION="${RELEASE_TAG#v}"
           PACKAGE_VERSION="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
