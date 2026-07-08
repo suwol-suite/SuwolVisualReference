@@ -4,6 +4,20 @@
 
 - No unreleased changes.
 
+## 0.2.2 - 2026-07-08
+
+### Added
+
+- Added a reusable Electron release standard for Suwol desktop apps.
+- Added manual macOS arm64 build diagnostics for a trusted self-hosted Apple Silicon runner.
+- Added a manual workflow to attach signed and notarized macOS arm64 assets to an existing GitHub Release.
+- Added macOS hardened runtime entitlements and helper scripts for icon checks, DMG notarization, and native payload re-signing.
+
+### Changed
+
+- Release checksum generation and verification now include macOS DMG files and `latest-mac.yml` when macOS assets are attached.
+- README, release process, and packaging notes now describe the two-phase Windows/Linux core release plus later macOS attachment flow.
+
 ## 0.2.1 - 2026-07-06
 
 ### Fixed
