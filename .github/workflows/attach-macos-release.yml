@@ -131,11 +131,20 @@ jobs:
         shell: bash
         env:
           GPG_PRIVATE_KEY_B64: ${{ secrets.GPG_PRIVATE_KEY_B64 }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-          test -n "$GPG_PRIVATE_KEY_B64"
           umask 077
-          echo "$GPG_PRIVATE_KEY_B64" | base64 --decode > private.asc
+          if [ -n "${GPG_PRIVATE_KEY_B64:-}" ]; then
+            if ! printf '%s' "$GPG_PRIVATE_KEY_B64" | base64 --decode > private.asc 2>/tmp/gpg-key-decode.log; then
+              printf '%s' "$GPG_PRIVATE_KEY_B64" > private.asc
+            fi
+          elif [ -n "${GPG_PRIVATE_KEY:-}" ]; then
+            printf '%s' "$GPG_PRIVATE_KEY" > private.asc
+          else
+            echo "GPG_PRIVATE_KEY_B64 or GPG_PRIVATE_KEY secret is missing."
+            exit 1
+          fi
           gpg --batch --import private.asc
           rm -f private.asc
 
