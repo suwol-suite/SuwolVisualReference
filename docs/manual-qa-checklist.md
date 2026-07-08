@@ -8,8 +8,11 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 - [ ] Extract the Windows ZIP and run `Suwol Visual Reference.exe`.
 - [ ] Run `Suwol Visual Reference.exe --version` and confirm the version.
 - [ ] Download the Linux AppImage from GitHub Releases.
+- [ ] Download the Linux ZIP from GitHub Releases.
 - [ ] Add execute permission to the Linux AppImage if needed.
 - [ ] Run the Linux AppImage with `--version` and confirm the version.
+- [ ] Download the macOS arm64 DMG or ZIP from GitHub Releases.
+- [ ] Run the macOS app and confirm the version.
 - [ ] Confirm the app title is `Suwol Visual Reference`.
 - [ ] Confirm Windows SmartScreen behavior is understood for unsigned builds.
 
@@ -110,10 +113,14 @@ Use this checklist before promoting a release. Do not upload private assets, cop
 ## Release Assets
 
 - [ ] Confirm Windows ZIP exists.
+- [ ] Confirm Linux ZIP exists.
 - [ ] Confirm Linux AppImage exists.
 - [ ] Confirm `latest-linux.yml` exists.
+- [ ] Confirm macOS DMG exists.
+- [ ] Confirm macOS ZIP exists.
+- [ ] Confirm `latest-mac.yml` exists.
 - [ ] Confirm checksums file exists.
-- [ ] Confirm checksums include Windows ZIP, Linux AppImage, and `latest-linux.yml`.
+- [ ] Confirm checksums include Windows ZIP, Linux ZIP, Linux AppImage, `latest-linux.yml`, macOS DMG, macOS ZIP, and `latest-mac.yml`.
 - [ ] Confirm checksums signature exists.
 - [ ] Import `suwol-release-public-key.asc` and verify `checksums.txt.asc`.
 - [ ] Verify release asset hashes against the checksums file.

@@ -11,12 +11,19 @@ const releaseDir = path.resolve(repoRoot, args.find((arg) => !arg.startsWith('--
 const requireAll = args.includes('--require-all');
 const allowMissingLinux = args.includes('--allow-missing-linux') || (!requireAll && process.platform === 'win32');
 const allowMissingWindows = args.includes('--allow-missing-windows') || (!requireAll && process.platform === 'linux');
+const allowMissingMac = args.includes('--allow-missing-mac') || !requireAll;
 const version = String(packageJson.version);
 const expectedAssets = [
   {
     platform: 'win',
     fileName: `SuwolVisualReference-${version}-win-x64.zip`,
     required: requireAll || !allowMissingWindows,
+    kind: 'archive'
+  },
+  {
+    platform: 'linux',
+    fileName: `SuwolVisualReference-${version}-linux-x64.zip`,
+    required: requireAll || !allowMissingLinux,
     kind: 'archive'
   },
   {
@@ -30,6 +37,24 @@ const expectedAssets = [
     fileName: 'latest-linux.yml',
     required: requireAll || !allowMissingLinux,
     kind: 'update-metadata'
+  },
+  {
+    platform: 'mac',
+    fileName: `SuwolVisualReference-${version}-mac-arm64.dmg`,
+    required: requireAll || !allowMissingMac,
+    kind: 'disk-image'
+  },
+  {
+    platform: 'mac',
+    fileName: `SuwolVisualReference-${version}-mac-arm64.zip`,
+    required: requireAll || !allowMissingMac,
+    kind: 'archive'
+  },
+  {
+    platform: 'mac',
+    fileName: 'latest-mac.yml',
+    required: requireAll || !allowMissingMac,
+    kind: 'mac-update-metadata'
   }
 ];
 
@@ -66,6 +91,9 @@ for (const asset of expectedAssets) {
   verifyChecksumEntry(asset.fileName, versionedChecksums);
   if (asset.kind === 'update-metadata') {
     verifyLatestLinuxMetadata(assetPath);
+  }
+  if (asset.kind === 'mac-update-metadata') {
+    verifyLatestMacMetadata(assetPath);
   }
   verifiedCount += 1;
 }
@@ -108,6 +136,13 @@ function verifyLatestLinuxMetadata(filePath) {
   const text = fs.readFileSync(filePath, 'utf8');
   requireYamlField(text, 'version', version);
   requireYamlField(text, 'path', `SuwolVisualReference-${version}-linux-x64.AppImage`);
+  requireYamlField(text, 'sha512');
+}
+
+function verifyLatestMacMetadata(filePath) {
+  const text = fs.readFileSync(filePath, 'utf8');
+  requireYamlField(text, 'version', version);
+  requireYamlField(text, 'path', `SuwolVisualReference-${version}-mac-arm64.zip`);
   requireYamlField(text, 'sha512');
 }
 

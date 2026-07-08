@@ -4,6 +4,16 @@
 
 - No unreleased changes.
 
+## 0.2.5 - 2026-07-08
+
+### Fixed
+
+- Unified the Release workflow so Windows, Linux, and macOS artifacts are built, verified, signed, and uploaded in one run.
+- Fixed macOS Release attachment failures by discovering actual downloaded artifact paths and normalizing them to release file names before checksum generation.
+- Restored Linux ZIP as a release asset alongside the Linux AppImage and `latest-linux.yml`.
+- Added macOS arm64 DMG, macOS arm64 ZIP, and `latest-mac.yml` to required release verification.
+- Regenerated checksum and GPG signature validation around the complete Windows/Linux/macOS asset set.
+
 ## 0.2.4 - 2026-07-08
 
 ### Fixed

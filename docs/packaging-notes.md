@@ -1,17 +1,18 @@
 # Packaging Notes
 
-Suwol Visual Reference is distributed first as a Windows ZIP plus a Linux AppImage for x64. Linux AppImage builds support automatic update checks through GitHub Releases. macOS arm64 artifacts are built, signed, notarized, and attached later through manual workflows after diagnostics pass. Windows installers, Windows automatic updates, Linux ZIP builds, and public macOS distribution are not part of the default core release.
+Suwol Visual Reference is distributed as a Windows ZIP, Linux ZIP, Linux AppImage, and signed/notarized macOS arm64 DMG/ZIP. Linux AppImage builds support automatic update checks through GitHub Releases. Windows installers and Windows automatic updates are not part of the default release.
 
 ## Artifact Names
 
 Expected release assets:
 
 - `SuwolVisualReference-<version>-win-x64.zip`
+- `SuwolVisualReference-<version>-linux-x64.zip`
 - `SuwolVisualReference-<version>-linux-x64.AppImage`
-- `SuwolVisualReference-<version>-mac-arm64.dmg` after macOS attachment
-- `SuwolVisualReference-<version>-mac-arm64.zip` after macOS attachment
+- `SuwolVisualReference-<version>-mac-arm64.dmg`
+- `SuwolVisualReference-<version>-mac-arm64.zip`
 - `latest-linux.yml`
-- `latest-mac.yml` after macOS attachment
+- `latest-mac.yml`
 - `checksums.txt`
 - `checksums.txt.asc`
 - `SuwolVisualReference-<version>-checksums.txt`
@@ -56,7 +57,8 @@ Video thumbnail extraction is optional and uses only an external `ffmpeg`/`ffpro
 Rules for release builds:
 
 - Build the Windows ZIP on Windows.
-- Build the Linux AppImage on Linux.
+- Build the Linux ZIP and AppImage on Linux.
+- Build the macOS arm64 DMG and ZIP on the trusted macOS ARM64 runner.
 - Do not force cross-OS release packaging for native modules.
 - Run `npm ci` before packaging.
 - Run `npm run rebuild:native` or `npm.cmd run rebuild:native` before release packaging.
@@ -123,6 +125,7 @@ xvfb-run -a ./node_modules/.bin/electron --no-sandbox out/main/index.js --smoke-
 npm run dist:linux:release
 npm run release:normalize-linux-appimage -- --require
 npm run verify:packaged-app -- --platform=linux
+npm run verify:release:zip -- --platform=linux
 ```
 
 ## Checksums
@@ -135,9 +138,9 @@ npm.cmd run release:checksums
 
 `scripts/verify-checksums.mjs` reads the checksum file, recalculates SHA-256 for each listed release artifact, and fails if an artifact is missing or a hash differs.
 
-`scripts/verify-release-zip.mjs` checks the Windows release ZIP structure, required executable, `resources/app.asar`, packaged icon resources, license/notices inside `app.asar`, and forbidden private/test paths.
+`scripts/verify-release-zip.mjs` checks the Windows and Linux release ZIP structures, required executables, `resources/app.asar`, packaged icon resources, license/notices inside `app.asar`, and forbidden private/test paths.
 
-`scripts/verify-release-assets.mjs` checks the release asset set, AppImage presence and size, `latest-linux.yml` version/path/sha512 metadata, checksum coverage, checksum hash matches, and forbidden release asset names. Local Windows runs allow missing Linux assets by default; the release workflow uses `--require-all`.
+`scripts/verify-release-assets.mjs` checks the release asset set, AppImage presence and size, `latest-linux.yml` and `latest-mac.yml` version/path/sha512 metadata, checksum coverage, checksum hash matches, and forbidden release asset names. Local Windows runs allow missing Linux/macOS assets by default; the release workflow uses `--require-all`.
 
 `scripts/verify-packaged-app.mjs` checks unpacked packaged apps after `electron-builder` creates `release/win-unpacked` or `release/linux-unpacked`. It runs the packaged executable with `--version` only on the matching OS.
 
@@ -145,7 +148,7 @@ On GitHub Actions Ubuntu runners, Chromium can abort packaged Electron verificat
 
 Sharp 0.34 uses platform-specific optional packages under `node_modules/@img`, including libvips payloads. Those files must be unpacked alongside `node_modules/sharp` so the packaged Linux app can load `libvips-cpp.so` during verification and runtime thumbnail work.
 
-The GitHub Actions release workflow verifies each OS package before upload. The publish job then downloads both OS artifacts, runs checksum, release-asset, and Windows ZIP verification scripts against `release-assets/`, signs `checksums.txt` and the versioned checksum file with the `GPG_PRIVATE_KEY_B64` secret, verifies the signatures with `suwol-release-public-key.asc`, and uploads the Windows ZIP, Linux AppImage, `latest-linux.yml`, checksums, signatures, and public key to GitHub Releases.
+The GitHub Actions release workflow verifies each OS package before upload. The publish job then downloads Windows, Linux, and macOS artifacts, prints their actual paths, normalizes them into `release-assets/`, runs checksum, release-asset, and ZIP verification scripts, signs `checksums.txt` and the versioned checksum file with the GPG release secret, verifies the signatures with `suwol-release-public-key.asc`, and uploads the complete asset set to GitHub Releases.
 
 ## AppImage Update Support
 
@@ -159,7 +162,7 @@ The normal release trigger is a `v*` tag push. If a tag-triggered run fails afte
 
 ## macOS Arm64 Attachment
 
-macOS release builds are manual and require a trusted Apple Silicon self-hosted runner labeled `self-hosted`, `macOS`, and `ARM64`.
+macOS release builds run inside the Release workflow on a trusted Apple Silicon self-hosted runner labeled `self-hosted`, `macOS`, and `ARM64`.
 
 Required repository secrets:
 
@@ -172,9 +175,7 @@ Required repository secrets:
 
 The runner must have Xcode command line tools, a Developer ID Application certificate with private key, Developer ID CA chain, Node.js 22, and a stored notary profile named `suwol-notary-profile`.
 
-Run `.github/workflows/macos-build-diagnostics.yml` first. It unlocks the keychain, verifies signing and notary access, builds macOS arm64 only, checks native `.node` and `.dylib` payload signatures, notarizes the DMG, staples it, and uploads diagnostic artifacts.
-
-After diagnostics pass, run `.github/workflows/attach-macos-release.yml` from `main` with `release_tag` set to the existing tag. It uploads macOS arm64 DMG, macOS arm64 ZIP, and `latest-mac.yml` to the existing GitHub Release and refreshes checksum files and GPG signatures. Do not build universal or Intel macOS artifacts.
+Use `.github/workflows/macos-build-diagnostics.yml` only when diagnosing the macOS host. The normal v0.2.5+ release path is `.github/workflows/release.yml`, which builds macOS arm64 DMG/ZIP artifacts, notarizes and staples the DMG, uploads macOS artifacts, and publishes them with the Windows/Linux assets. Do not build universal or Intel macOS artifacts.
 
 ## Security Notes
 
@@ -188,6 +189,5 @@ After diagnostics pass, run `.github/workflows/attach-macos-release.yml` from `m
 ## Remaining Distribution Work
 
 - Add Windows code signing to reduce SmartScreen warnings.
-- Complete the self-hosted macOS diagnostics and attachment run before distributing macOS artifacts.
 - Add manual release QA for extracted ZIP folders on clean Windows and Linux machines.
 - Revisit Electron, Vite, and electron-vite major upgrades in a dedicated compatibility pass.

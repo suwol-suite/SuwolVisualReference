@@ -13,8 +13,12 @@ const version = String(packageJson.version);
 const checksumPath = path.join(releaseDir, `SuwolVisualReference-${version}-checksums.txt`);
 const expectedFiles = [
   `SuwolVisualReference-${version}-win-x64.zip`,
+  `SuwolVisualReference-${version}-linux-x64.zip`,
   `SuwolVisualReference-${version}-linux-x64.AppImage`,
-  'latest-linux.yml'
+  'latest-linux.yml',
+  `SuwolVisualReference-${version}-mac-arm64.dmg`,
+  `SuwolVisualReference-${version}-mac-arm64.zip`,
+  'latest-mac.yml'
 ];
 const releaseArtifactPattern = /^([a-fA-F0-9]{64})\s+(.+\.(?:zip|AppImage|deb|rpm|dmg)|latest-(?:linux|mac)\.yml)$/u;
 

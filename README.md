@@ -30,7 +30,7 @@ Screenshots are planned after the first public ZIP release.
 
 - Windows x64: ZIP distribution.
 - Linux x64: ZIP and AppImage distributions.
-- macOS arm64: planned as a separately signed and notarized release attachment.
+- macOS arm64: signed and notarized DMG/ZIP distribution.
 
 Automatic updates are supported only in the Linux AppImage build. Windows ZIP builds use manual updates from GitHub Releases.
 
@@ -38,61 +38,71 @@ Automatic updates are supported only in the Linux AppImage build. Windows ZIP bu
 
 Download the latest build from [GitHub Releases](https://github.com/suwol-suite/SuwolVisualReference/releases).
 
-Latest v0.2.4 release files:
+Latest v0.2.5 release files:
 
-- Windows ZIP: `SuwolVisualReference-0.2.4-win-x64.zip`
-- Linux AppImage: `SuwolVisualReference-0.2.4-linux-x64.AppImage`
+- Windows ZIP: `SuwolVisualReference-0.2.5-win-x64.zip`
+- Linux ZIP: `SuwolVisualReference-0.2.5-linux-x64.zip`
+- Linux AppImage: `SuwolVisualReference-0.2.5-linux-x64.AppImage`
+- macOS DMG: `SuwolVisualReference-0.2.5-mac-arm64.dmg`
+- macOS ZIP: `SuwolVisualReference-0.2.5-mac-arm64.zip`
 
 Update policy:
 
 - Linux AppImage: automatic update checks are supported.
 - Windows ZIP: manual updates from GitHub Releases.
-- macOS arm64: planned as a separately signed and notarized release attachment.
+- Linux ZIP and macOS ZIP/DMG: manual updates from GitHub Releases.
 
 ### Windows ZIP
 
-1. Download `SuwolVisualReference-0.2.4-win-x64.zip`.
+1. Download `SuwolVisualReference-0.2.5-win-x64.zip`.
 2. Extract the ZIP.
 3. Run `Suwol Visual Reference.exe`.
 4. Windows SmartScreen may warn because the build is not code-signed.
 
 ### Linux
 
-1. Download `SuwolVisualReference-0.2.4-linux-x64.AppImage`.
+1. Download `SuwolVisualReference-0.2.5-linux-x64.AppImage` or `SuwolVisualReference-0.2.5-linux-x64.zip`.
 2. If your desktop environment requires it, mark the executable as runnable.
 
    AppImage:
 
    ```bash
-   chmod +x SuwolVisualReference-0.2.4-linux-x64.AppImage
+   chmod +x SuwolVisualReference-0.2.5-linux-x64.AppImage
    ```
 
 3. Run the AppImage.
 
 The Linux AppImage can check for updates from GitHub Releases using `latest-linux.yml`. It checks automatically by default but does not download or install updates until you choose that action in Settings/About.
 
+### macOS
+
+1. Download `SuwolVisualReference-0.2.5-mac-arm64.dmg` or `SuwolVisualReference-0.2.5-mac-arm64.zip`.
+2. Open the DMG or extract the ZIP.
+3. Run `Suwol Visual Reference.app`.
+4. The macOS build is signed, notarized, and stapled in the release workflow.
+
 ### Verify Checksums
 
-Download `SuwolVisualReference-0.2.4-checksums.txt` from the same release and compare the SHA-256 hash before running the app. If a signed checksum file is published, also download `SuwolVisualReference-0.2.4-checksums.txt.asc` and verify the signature with the Suwol release public key.
+Download `SuwolVisualReference-0.2.5-checksums.txt` from the same release and compare the SHA-256 hash before running the app. If a signed checksum file is published, also download `SuwolVisualReference-0.2.5-checksums.txt.asc` and verify the signature with the Suwol release public key.
 
 Windows PowerShell:
 
 ```powershell
-Get-FileHash .\SuwolVisualReference-0.2.4-win-x64.zip -Algorithm SHA256
+Get-FileHash .\SuwolVisualReference-0.2.5-win-x64.zip -Algorithm SHA256
 ```
 
 Linux:
 
 ```bash
-sha256sum SuwolVisualReference-0.2.4-linux-x64.AppImage
+sha256sum SuwolVisualReference-0.2.5-linux-x64.AppImage
 ```
 
 Linux signature and checksum verification:
 
 ```bash
 gpg --import suwol-release-public-key.asc
-gpg --verify SuwolVisualReference-0.2.4-checksums.txt.asc SuwolVisualReference-0.2.4-checksums.txt
-shasum -a 256 -c SuwolVisualReference-0.2.4-checksums.txt
+gpg --verify SuwolVisualReference-0.2.5-checksums.txt.asc SuwolVisualReference-0.2.5-checksums.txt
+shasum -a 256 -c SuwolVisualReference-0.2.5-checksums.txt
 ```
 
 If the downloaded files are renamed locally, the same commands work with shorter names:
@@ -192,15 +202,19 @@ npm.cmd run verify:release-assets
 Expected release assets:
 
 - `SuwolVisualReference-<version>-win-x64.zip`
+- `SuwolVisualReference-<version>-linux-x64.zip`
 - `SuwolVisualReference-<version>-linux-x64.AppImage`
+- `SuwolVisualReference-<version>-mac-arm64.dmg`
+- `SuwolVisualReference-<version>-mac-arm64.zip`
 - `latest-linux.yml`
+- `latest-mac.yml`
 - `SuwolVisualReference-<version>-checksums.txt`
 - `SuwolVisualReference-<version>-checksums.txt.asc`
 - `checksums.txt`
 - `checksums.txt.asc`
 - `suwol-release-public-key.asc`
 
-GitHub Actions builds Windows and Linux files on their matching OS runners when a `v*` tag is pushed. The workflow publishes a GitHub Release with ZIP/AppImage files, `latest-linux.yml`, SHA-256 checksums, detached GPG signatures, and the release public key using the default `GITHUB_TOKEN`.
+GitHub Actions builds Windows, Linux, and macOS files on their matching OS runners when a `v*` tag is pushed. The workflow publishes a GitHub Release with ZIP/AppImage/DMG files, update metadata, SHA-256 checksums, detached GPG signatures, and the release public key using the default `GITHUB_TOKEN`.
 
 The CI workflow runs on pushes and pull requests to `main`. It checks type safety, linting, selection logic, i18n resources, third-party notices, smoke behavior, production build, and production dependency audit on Windows and Linux.
 

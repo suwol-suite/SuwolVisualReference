@@ -1,6 +1,6 @@
 # Release Process
 
-This project publishes a Windows ZIP and a Linux AppImage through GitHub Actions. macOS arm64 artifacts are built and attached later through a separate manual workflow after diagnostics pass.
+This project publishes Windows, Linux, and macOS artifacts through one GitHub Actions Release workflow.
 
 ## Version Policy
 
@@ -21,7 +21,7 @@ Do not create a release tag until the package version, changelog, release notes,
 8. Create and push the tag.
 9. Watch GitHub Actions.
 10. Confirm the GitHub Release assets and checksums.
-11. If macOS distribution is approved for the release, run macOS diagnostics and then attach macOS assets to the same GitHub Release.
+11. Confirm the GitHub Release contains the full Windows/Linux/macOS asset set.
 
 ## Local Windows Checks
 
@@ -46,7 +46,7 @@ npm.cmd run verify:packaged-app
 npm.cmd run release:verify
 ```
 
-Local Windows verification may only have the Windows ZIP. The release workflow verifies Windows ZIP, Linux AppImage, and `latest-linux.yml` after downloading artifacts from both OS jobs.
+Local Windows verification may only have the Windows ZIP. The release workflow verifies Windows ZIP, Linux ZIP, Linux AppImage, `latest-linux.yml`, macOS DMG, macOS ZIP, and `latest-mac.yml` after downloading artifacts from all OS jobs.
 
 ## Tagging
 
@@ -55,32 +55,28 @@ git tag v0.2.1
 git push origin v0.2.1
 ```
 
-Tag push starts `.github/workflows/release.yml`. That workflow publishes the Windows/Linux core release only.
+Tag push starts `.github/workflows/release.yml`. That workflow publishes the full Windows/Linux/macOS release.
 
 Do not delete or recreate a local or remote release tag without explicit user approval.
 
 ## GitHub Actions Release Flow
 
-1. Windows runner builds the Windows ZIP.
-2. Linux runner builds the Linux AppImage artifact.
-3. Release job downloads both artifacts.
-4. OS build jobs verify unpacked packaged apps before upload.
-5. Release job creates `checksums.txt` and `SuwolVisualReference-<version>-checksums.txt`.
-6. Release job signs both checksum files with the `GPG_PRIVATE_KEY_B64` and `GPG_PASSPHRASE` secrets.
-7. Release job verifies checksums and detached GPG signatures with `suwol-release-public-key.asc`.
-8. Release job verifies AppImage/update metadata release assets.
-9. Release job verifies ZIP structure and forbidden-path rules.
-10. Release job publishes the GitHub Release.
+1. Windows runner builds and verifies the Windows ZIP.
+2. Linux runner builds and verifies the Linux ZIP, Linux AppImage, and `latest-linux.yml`.
+3. macOS self-hosted ARM64 runner builds, signs, notarizes, staples, and verifies macOS DMG/ZIP artifacts and `latest-mac.yml`.
+4. Release job downloads all OS artifacts and prints their actual paths.
+5. Release job normalizes the downloaded files to stable release asset names.
+6. Release job creates `checksums.txt` and `SuwolVisualReference-<version>-checksums.txt`.
+7. Release job verifies the complete asset set with `--require-all`.
+8. Release job signs both checksum files with the `GPG_PRIVATE_KEY_B64` or `GPG_PRIVATE_KEY` and `GPG_PASSPHRASE` secrets.
+9. Release job verifies checksums and detached GPG signatures with `suwol-release-public-key.asc`.
+10. Release job publishes or updates the GitHub Release.
 
-## macOS Attach Flow
+## macOS Diagnostics
 
-macOS builds are not part of push CI or the default tag release. Use this sequence only on a trusted Apple Silicon self-hosted runner:
+macOS release builds require a trusted Apple Silicon self-hosted runner labeled `self-hosted`, `macOS`, and `ARM64`.
 
-1. Run `.github/workflows/macos-build-diagnostics.yml` manually.
-2. Confirm Node, Xcode, keychain, signing identity, notary profile, native modules, DMG, notarization, and stapling diagnostics pass.
-3. Run `.github/workflows/attach-macos-release.yml` manually with the existing release tag.
-4. Confirm macOS arm64 DMG, macOS arm64 ZIP, and `latest-mac.yml` were attached to the existing release.
-5. Confirm `checksums.txt`, `SuwolVisualReference-<version>-checksums.txt`, and their `.asc` signatures were refreshed.
+Use `.github/workflows/macos-build-diagnostics.yml` only when diagnosing the macOS host. The normal release path is `.github/workflows/release.yml`.
 
 Do not build universal or Intel macOS assets for this release line. Do not pass Apple notary passwords on the command line; use the stored `suwol-notary-profile`.
 
@@ -88,7 +84,7 @@ Do not build universal or Intel macOS assets for this release line. Do not pass 
 
 If the tag already exists and a tag-triggered run fails after a workflow fix, run the Release workflow manually with `workflow_dispatch` and the existing release tag.
 
-For a workflow-only recovery of an existing tag, use GitHub Actions with `Use workflow from: main` and set `release_tag` to the existing tag, such as `v0.2.4`. Running from `main` is important because running from the tag can use the older workflow file stored at that tag. The workflow reads `github.event.inputs.release_tag` for manual runs and rejects branch names such as `main`.
+For a workflow-only recovery of an existing tag, use GitHub Actions with `Use workflow from: main` and set `release_tag` to the existing tag, such as `v0.2.5`. Running from `main` is important because running from the tag can use the older workflow file stored at that tag. The workflow reads `github.event.inputs.release_tag` for manual runs and rejects branch names such as `main`.
 
 Use tag deletion/recreation only when the user explicitly approves it.
 
@@ -97,11 +93,12 @@ Use tag deletion/recreation only when the user explicitly approves it.
 Expected asset names:
 
 - `SuwolVisualReference-<version>-win-x64.zip`
+- `SuwolVisualReference-<version>-linux-x64.zip`
 - `SuwolVisualReference-<version>-linux-x64.AppImage`
-- `SuwolVisualReference-<version>-mac-arm64.dmg` after macOS attachment
-- `SuwolVisualReference-<version>-mac-arm64.zip` after macOS attachment
+- `SuwolVisualReference-<version>-mac-arm64.dmg`
+- `SuwolVisualReference-<version>-mac-arm64.zip`
 - `latest-linux.yml`
-- `latest-mac.yml` after macOS attachment
+- `latest-mac.yml`
 - `checksums.txt`
 - `checksums.txt.asc`
 - `SuwolVisualReference-<version>-checksums.txt`

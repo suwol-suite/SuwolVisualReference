@@ -12,16 +12,30 @@ const args = process.argv.slice(2);
 const releaseDir = path.resolve(repoRoot, args.find((arg) => !arg.startsWith('--')) ?? 'release');
 const requireAll = args.includes('--require-all');
 const allowMissingWindows = args.includes('--allow-missing-windows') || (!requireAll && process.platform === 'linux');
+const allowMissingLinux = args.includes('--allow-missing-linux') || (!requireAll && process.platform === 'win32');
+const platformFilter = getFlagValue('--platform');
 const version = String(packageJson.version);
+const packageName = String(packageJson.name);
+const productName = String(packageJson.build?.productName ?? 'Suwol Visual Reference');
+if (platformFilter && !['win', 'linux'].includes(platformFilter)) {
+  fail(`unsupported --platform value: ${platformFilter}`);
+}
 const expectedArtifacts = [
   {
     platform: 'win',
     fileName: `SuwolVisualReference-${version}-win-x64.zip`,
-    required: requireAll || !allowMissingWindows,
-    executableNames: ['Suwol Visual Reference.exe'],
+    required: platformFilter === 'win' || requireAll || !allowMissingWindows,
+    executableNames: [`${productName}.exe`],
     iconNames: ['resources/build/icon.ico', 'resources/build/icon.png']
+  },
+  {
+    platform: 'linux',
+    fileName: `SuwolVisualReference-${version}-linux-x64.zip`,
+    required: platformFilter === 'linux' || requireAll || !allowMissingLinux,
+    executableNames: [productName, packageName, 'suwol-visual-reference', 'SuwolVisualReference'],
+    iconNames: ['resources/build/icon.png']
   }
-];
+].filter((artifact) => !platformFilter || artifact.platform === platformFilter);
 
 let verifiedCount = 0;
 for (const artifact of expectedArtifacts) {
@@ -72,7 +86,7 @@ function verifyArtifact(zipPath, artifact) {
 }
 
 function verifyAsarContents(zipPath, entries, fileName) {
-  const appAsar = entries.find((entry) => normalizeZipName(entry.name) === 'resources/app.asar');
+  const appAsar = entries.find((entry) => entryMatchesName(normalizeZipName(entry.name), 'resources/app.asar'));
   if (!appAsar) {
     fail(`missing resources/app.asar in ${fileName}`);
   }
@@ -166,15 +180,31 @@ function findEndOfCentralDirectory(buffer) {
 }
 
 function requireEntry(entrySet, name, label) {
-  if (!entrySet.has(normalizeZipName(name))) {
+  if (!hasEntry(entrySet, name)) {
     fail(`missing ${label}: ${name}`);
   }
 }
 
 function requireAny(entrySet, names, label) {
-  if (!names.some((name) => entrySet.has(normalizeZipName(name)))) {
+  if (!names.some((name) => hasEntry(entrySet, name))) {
     fail(`missing ${label}. Tried: ${names.join(', ')}`);
   }
+}
+
+function hasEntry(entrySet, name) {
+  const normalized = normalizeZipName(name);
+  for (const entryName of entrySet) {
+    if (entryMatchesName(entryName, normalized)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function entryMatchesName(entryName, expectedName) {
+  const normalizedEntry = normalizeZipName(entryName);
+  const normalizedExpected = normalizeZipName(expectedName);
+  return normalizedEntry === normalizedExpected || normalizedEntry.endsWith(`/${normalizedExpected}`);
 }
 
 function normalizeZipName(name) {
@@ -222,6 +252,12 @@ function isForbiddenEntry(entryName) {
   }
 
   return false;
+}
+
+function getFlagValue(name) {
+  const prefix = `${name}=`;
+  const match = args.find((arg) => arg.startsWith(prefix));
+  return match ? match.slice(prefix.length) : null;
 }
 
 function relativePath(filePath) {
