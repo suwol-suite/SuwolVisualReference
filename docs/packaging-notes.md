@@ -9,6 +9,7 @@ Expected release assets:
 - `SuwolVisualReference-<version>-win-x64.zip`
 - `SuwolVisualReference-<version>-linux-x64.AppImage`
 - `SuwolVisualReference-<version>-mac-arm64.dmg` after macOS attachment
+- `SuwolVisualReference-<version>-mac-arm64.zip` after macOS attachment
 - `latest-linux.yml`
 - `latest-mac.yml` after macOS attachment
 - `checksums.txt`
@@ -173,7 +174,7 @@ The runner must have Xcode command line tools, a Developer ID Application certif
 
 Run `.github/workflows/macos-build-diagnostics.yml` first. It unlocks the keychain, verifies signing and notary access, builds macOS arm64 only, checks native `.node` and `.dylib` payload signatures, notarizes the DMG, staples it, and uploads diagnostic artifacts.
 
-After diagnostics pass, run `.github/workflows/attach-macos-release.yml` with the existing tag. It uploads macOS arm64 DMG and optional update metadata to the existing GitHub Release and refreshes checksum files and GPG signatures. Do not build universal, Intel, or ZIP macOS artifacts.
+After diagnostics pass, run `.github/workflows/attach-macos-release.yml` from `main` with `release_tag` set to the existing tag. It uploads macOS arm64 DMG, macOS arm64 ZIP, and `latest-mac.yml` to the existing GitHub Release and refreshes checksum files and GPG signatures. Do not build universal or Intel macOS artifacts.
 
 ## Security Notes
 

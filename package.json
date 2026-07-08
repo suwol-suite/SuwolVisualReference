@@ -37,7 +37,7 @@
     "dist:win": "npm run icons:generate && npm run build && electron-builder --win zip --publish never",
     "dist:linux": "npm run icons:generate && npm run build && electron-builder --linux AppImage --publish never",
     "dist:linux:release": "npm run icons:generate && npm run build && electron-builder --linux AppImage --publish never",
-    "dist:mac:arm64": "npm run icons:generate && npm run build && electron-builder --mac dmg --arm64 --publish never",
+    "dist:mac:arm64": "npm run icons:generate && npm run build && electron-builder --mac dmg zip --arm64 --publish never",
     "release:zip:win": "npm run dist:win",
     "release:appimage:linux": "npm run dist:linux",
     "release:normalize-linux-appimage": "node scripts/normalize-linux-appimage.mjs",
@@ -146,6 +146,12 @@
       "target": [
         {
           "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
           "arch": [
             "arm64"
           ]

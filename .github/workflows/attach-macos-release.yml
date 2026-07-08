@@ -3,8 +3,8 @@ name: Attach macOS Release Assets
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Existing release tag, for example v0.2.1'
+      release_tag:
+        description: 'Release tag, for example v0.2.4'
         required: true
         type: string
 
@@ -13,8 +13,8 @@ permissions:
   actions: read
 
 jobs:
-  attach-macos-release:
-    name: Attach macOS ARM64 Assets
+  macos:
+    name: Package macOS arm64
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 120
     env:
@@ -25,8 +25,39 @@ jobs:
       NOTARYTOOL_PROFILE: suwol-notary-profile
       NOTARY_TIMEOUT_MINUTES: 120
     steps:
-      - name: Check out source
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Validate release tag
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RELEASE_TAG" ]; then
+            echo "release_tag is required"
+            exit 1
+          fi
+          case "$RELEASE_TAG" in
+            v*) ;;
+            *)
+              echo "release_tag must be a version tag like v0.2.4"
+              exit 1
+              ;;
+          esac
+          VERSION="${RELEASE_TAG#v}"
+          PACKAGE_VERSION="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
+          if [ "$VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "Tag version $VERSION does not match package.json version $PACKAGE_VERSION"
+            exit 1
+          fi
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
 
       - name: Unlock macOS keychain
         shell: bash
@@ -34,32 +65,36 @@ jobs:
           MAC_KEYCHAIN_PASSWORD: ${{ secrets.MAC_KEYCHAIN_PASSWORD }}
         run: |
           set -euo pipefail
-
           if [ -z "${MAC_KEYCHAIN_PASSWORD:-}" ]; then
             echo "MAC_KEYCHAIN_PASSWORD secret is missing."
             exit 1
           fi
-
           LOGIN_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
-
           security unlock-keychain -p "$MAC_KEYCHAIN_PASSWORD" "$LOGIN_KEYCHAIN"
           security set-keychain-settings -lut 21600 "$LOGIN_KEYCHAIN"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MAC_KEYCHAIN_PASSWORD" "$LOGIN_KEYCHAIN"
           security default-keychain -s "$LOGIN_KEYCHAIN"
           security list-keychains -d user -s "$LOGIN_KEYCHAIN"
 
-      - name: Validate release tag
+      - name: Verify signing inputs
         shell: bash
         run: |
           set -euo pipefail
-          TAG="${{ inputs.tag }}"
-          VERSION="${TAG#v}"
-          PACKAGE_VERSION="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
-          if [ "$VERSION" != "$PACKAGE_VERSION" ]; then
-            echo "Tag version $VERSION does not match package.json version $PACKAGE_VERSION"
+          missing=()
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_TEAM_ID NOTARYTOOL_PROFILE; do
+            if [ -z "${!name:-}" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf 'Missing required signing inputs: %s\n' "${missing[*]}"
             exit 1
           fi
-          gh release view "$TAG" >/dev/null
+          xcodebuild -version
+          xcrun notarytool --help >/dev/null
+          xcrun stapler --help >/dev/null
+          security find-identity -v -p codesigning
+          xcrun notarytool history --keychain-profile "$NOTARYTOOL_PROFILE" --output-format json >/dev/null
 
       - name: Install dependencies
         run: npm ci
@@ -93,6 +128,16 @@ jobs:
           fi
           npm run mac:resign-app -- "$APP_PATH"
 
+      - name: Verify app signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find release -maxdepth 2 -name '*.app' -type d | head -n 1)"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          while IFS= read -r native_file; do
+            codesign --verify --strict --verbose=2 "$native_file"
+          done < <(find "$APP_PATH" -type f \( -name '*.node' -o -name '*.dylib' \))
+
       - name: Notarize and staple DMG
         shell: bash
         run: |
@@ -104,28 +149,82 @@ jobs:
           fi
           npm run mac:notarize-dmg -- "$DMG_PATH"
 
-      - name: Download existing release assets
+      - name: Verify macOS artifacts
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          VERSION="${RELEASE_TAG#v}"
+          test -s "release/SuwolVisualReference-${VERSION}-mac-arm64.dmg"
+          test -s "release/SuwolVisualReference-${VERSION}-mac-arm64.zip"
+          test -s "release/latest-mac.yml"
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: suwolvisualreference-mac-arm64
+          path: |
+            release/SuwolVisualReference-*-mac-arm64.dmg
+            release/SuwolVisualReference-*-mac-arm64.zip
+            release/latest-mac.yml
+            diagnostics/**
+          if-no-files-found: error
+
+  attach:
+    name: Attach macOS to Release
+    runs-on: ubuntu-latest
+    needs: macos
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.event.inputs.release_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install verification dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: suwolvisualreference-mac-arm64
+          path: macos-artifacts
+
+      - name: Download existing Release assets
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf release-assets
+          if [ -z "$RELEASE_TAG" ]; then
+            echo "release_tag is required"
+            exit 1
+          fi
           mkdir -p release-assets
-          gh release download "${{ inputs.tag }}" --dir release-assets --clobber
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir release-assets --clobber
+          cp macos-artifacts/SuwolVisualReference-*-mac-arm64.dmg release-assets/
+          cp macos-artifacts/SuwolVisualReference-*-mac-arm64.zip release-assets/
+          cp macos-artifacts/latest-mac.yml release-assets/
           rm -f release-assets/checksums.txt \
             release-assets/checksums.txt.asc \
             release-assets/SuwolVisualReference-*-checksums.txt \
             release-assets/SuwolVisualReference-*-checksums.txt.asc
 
-      - name: Add macOS assets and update checksums
+      - name: Regenerate complete checksums
         shell: bash
         run: |
           set -euo pipefail
-          cp release/SuwolVisualReference-*-mac-arm64.dmg release-assets/
-          if [ -f release/latest-mac.yml ]; then
-            cp release/latest-mac.yml release-assets/
-          fi
           node scripts/checksums.mjs release-assets
           cd release-assets
+          test -s checksums.txt
+          cat checksums.txt
           sha256sum -c checksums.txt
 
       - name: Import GPG private key
@@ -152,7 +251,7 @@ jobs:
           gpg --batch --import "$RUNNER_TEMP/suwol-release-private-key.asc"
           rm -f "$RUNNER_TEMP/suwol-release-private-key.asc"
 
-      - name: Sign checksums
+      - name: Sign complete checksums
         shell: bash
         env:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -160,8 +259,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$GPG_PASSPHRASE"
-          VERSION="${{ inputs.tag }}"
-          VERSION="${VERSION#v}"
+          VERSION="${RELEASE_TAG#v}"
           cd release-assets
           for checksum_file in checksums.txt "SuwolVisualReference-${VERSION}-checksums.txt"; do
             printf '%s' "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
@@ -172,19 +270,31 @@ jobs:
             test -s "${checksum_file}.asc"
           done
 
+      - name: Verify complete checksums
+        shell: bash
+        env:
+          GNUPGHOME: ${{ runner.temp }}/gnupg
+        run: |
+          set -euo pipefail
+          VERSION="${RELEASE_TAG#v}"
+          gpg --import suwol-release-public-key.asc
+          cd release-assets
+          gpg --verify checksums.txt.asc checksums.txt
+          gpg --verify "SuwolVisualReference-${VERSION}-checksums.txt.asc" "SuwolVisualReference-${VERSION}-checksums.txt"
+          sha256sum -c checksums.txt
+
       - name: Upload macOS assets and refreshed checksums
         shell: bash
         run: |
           set -euo pipefail
-          TAG="${{ inputs.tag }}"
-          VERSION="${TAG#v}"
-          gh release upload "$TAG" \
-            release-assets/SuwolVisualReference-${VERSION}-mac-arm64.dmg \
-            release-assets/checksums.txt \
-            release-assets/checksums.txt.asc \
-            release-assets/SuwolVisualReference-${VERSION}-checksums.txt \
-            release-assets/SuwolVisualReference-${VERSION}-checksums.txt.asc \
+          VERSION="${RELEASE_TAG#v}"
+          gh release upload "$RELEASE_TAG" \
+            "release-assets/SuwolVisualReference-${VERSION}-mac-arm64.dmg" \
+            "release-assets/SuwolVisualReference-${VERSION}-mac-arm64.zip" \
+            "release-assets/latest-mac.yml" \
+            "release-assets/checksums.txt" \
+            "release-assets/checksums.txt.asc" \
+            "release-assets/SuwolVisualReference-${VERSION}-checksums.txt" \
+            "release-assets/SuwolVisualReference-${VERSION}-checksums.txt.asc" \
+            --repo "$GITHUB_REPOSITORY" \
             --clobber
-          if [ -f release-assets/latest-mac.yml ]; then
-            gh release upload "$TAG" release-assets/latest-mac.yml --clobber
-          fi
