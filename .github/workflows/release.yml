@@ -385,13 +385,12 @@ jobs:
           path: diagnostics/**
           if-no-files-found: ignore
 
-  release:
-    name: Publish GitHub Release
+  publish-core-release:
+    name: Publish Windows and Linux first
     needs:
       - prepare
       - build-windows
       - build-linux
-      - build-macos
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
@@ -422,13 +421,7 @@ jobs:
           name: linux-artifacts
           path: downloaded-artifacts/linux
 
-      - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-artifacts
-          path: downloaded-artifacts/macos
-
-      - name: Normalize release assets
+      - name: Normalize core release assets
         shell: bash
         run: |
           set -euo pipefail
@@ -440,18 +433,12 @@ jobs:
           LINUX_ZIP="$(find downloaded-artifacts/linux -type f -name '*.zip' | head -n 1)"
           LINUX_APPIMAGE="$(find downloaded-artifacts/linux -type f -name '*.AppImage' | head -n 1)"
           LINUX_LATEST="$(find downloaded-artifacts/linux -type f -name 'latest-linux.yml' | head -n 1)"
-          MAC_DMG="$(find downloaded-artifacts/macos -type f -name '*.dmg' | head -n 1)"
-          MAC_ZIP="$(find downloaded-artifacts/macos -type f -name '*.zip' | head -n 1)"
-          MAC_LATEST="$(find downloaded-artifacts/macos -type f -name 'latest-mac.yml' | head -n 1)"
 
           for item in \
             "WIN_ZIP:$WIN_ZIP" \
             "LINUX_ZIP:$LINUX_ZIP" \
             "LINUX_APPIMAGE:$LINUX_APPIMAGE" \
-            "LINUX_LATEST:$LINUX_LATEST" \
-            "MAC_DMG:$MAC_DMG" \
-            "MAC_ZIP:$MAC_ZIP" \
-            "MAC_LATEST:$MAC_LATEST"; do
+            "LINUX_LATEST:$LINUX_LATEST"; do
             name="${item%%:*}"
             value="${item#*:}"
             if [ -z "$value" ]; then
@@ -465,23 +452,20 @@ jobs:
           cp "$LINUX_ZIP" "release-assets/SuwolVisualReference-${VERSION}-linux-x64.zip"
           cp "$LINUX_APPIMAGE" "release-assets/SuwolVisualReference-${VERSION}-linux-x64.AppImage"
           cp "$LINUX_LATEST" "release-assets/latest-linux.yml"
-          cp "$MAC_DMG" "release-assets/SuwolVisualReference-${VERSION}-mac-arm64.dmg"
-          cp "$MAC_ZIP" "release-assets/SuwolVisualReference-${VERSION}-mac-arm64.zip"
-          cp "$MAC_LATEST" "release-assets/latest-mac.yml"
 
-          echo "Normalized release assets:"
+          echo "Normalized core release assets:"
           find release-assets -maxdepth 1 -type f -print | sort
 
-      - name: Verify version and create checksums
+      - name: Verify version and create core checksums
         shell: bash
         run: |
           set -euo pipefail
           git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}"
           test -s suwol-release-public-key.asc
           node scripts/checksums.mjs release-assets
-          node scripts/verify-checksums.mjs release-assets --require-all
-          node scripts/verify-release-assets.mjs release-assets --require-all
-          node scripts/verify-release-zip.mjs release-assets --require-all
+          node scripts/verify-checksums.mjs release-assets
+          node scripts/verify-release-assets.mjs release-assets --allow-missing-mac
+          node scripts/verify-release-zip.mjs release-assets --allow-missing-mac
           cat "release-assets/checksums.txt"
 
       - name: Import GPG private key
@@ -538,7 +522,7 @@ jobs:
           cd release-assets
           sha256sum -c checksums.txt
 
-      - name: Publish release
+      - name: Publish core release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -554,9 +538,6 @@ jobs:
               "release-assets/SuwolVisualReference-${VERSION}-linux-x64.zip" \
               "release-assets/SuwolVisualReference-${VERSION}-linux-x64.AppImage" \
               "release-assets/latest-linux.yml" \
-              "release-assets/SuwolVisualReference-${VERSION}-mac-arm64.dmg" \
-              "release-assets/SuwolVisualReference-${VERSION}-mac-arm64.zip" \
-              "release-assets/latest-mac.yml" \
               "release-assets/checksums.txt" \
               "release-assets/checksums.txt.asc" \
               "release-assets/SuwolVisualReference-${VERSION}-checksums.txt" \
@@ -570,9 +551,6 @@ jobs:
               "release-assets/SuwolVisualReference-${VERSION}-linux-x64.zip" \
               "release-assets/SuwolVisualReference-${VERSION}-linux-x64.AppImage" \
               "release-assets/latest-linux.yml" \
-              "release-assets/SuwolVisualReference-${VERSION}-mac-arm64.dmg" \
-              "release-assets/SuwolVisualReference-${VERSION}-mac-arm64.zip" \
-              "release-assets/latest-mac.yml" \
               "release-assets/checksums.txt" \
               "release-assets/checksums.txt.asc" \
               "release-assets/SuwolVisualReference-${VERSION}-checksums.txt" \
@@ -583,3 +561,161 @@ jobs:
               --title "$RELEASE_NAME" \
               --notes-file "$NOTES_FILE"
           fi
+
+  add-macos-release:
+    name: Add macOS artifacts and final checksums
+    needs:
+      - prepare
+      - build-macos
+      - publish-core-release
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install verification dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-artifacts
+          path: downloaded-artifacts/macos
+
+      - name: Download existing core release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir release-assets --clobber
+          rm -f release-assets/checksums.txt \
+            release-assets/checksums.txt.asc \
+            release-assets/SuwolVisualReference-*-checksums.txt \
+            release-assets/SuwolVisualReference-*-checksums.txt.asc
+
+      - name: Normalize macOS release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Downloaded macOS artifact files:"
+          find downloaded-artifacts/macos -maxdepth 6 -type f -print | sort
+
+          MAC_DMG="$(find downloaded-artifacts/macos -type f -name '*.dmg' | head -n 1)"
+          MAC_ZIP="$(find downloaded-artifacts/macos -type f -name '*.zip' | head -n 1)"
+          MAC_LATEST="$(find downloaded-artifacts/macos -type f -name 'latest-mac.yml' | head -n 1)"
+
+          for item in \
+            "MAC_DMG:$MAC_DMG" \
+            "MAC_ZIP:$MAC_ZIP" \
+            "MAC_LATEST:$MAC_LATEST"; do
+            name="${item%%:*}"
+            value="${item#*:}"
+            if [ -z "$value" ]; then
+              echo "$name not found."
+              find downloaded-artifacts/macos -maxdepth 6 -type f -print | sort
+              exit 1
+            fi
+          done
+
+          cp "$MAC_DMG" "release-assets/SuwolVisualReference-${VERSION}-mac-arm64.dmg"
+          cp "$MAC_ZIP" "release-assets/SuwolVisualReference-${VERSION}-mac-arm64.zip"
+          cp "$MAC_LATEST" "release-assets/latest-mac.yml"
+
+          echo "Complete release assets:"
+          find release-assets -maxdepth 1 -type f -print | sort
+
+      - name: Verify complete release assets and create final checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}"
+          test -s suwol-release-public-key.asc
+          node scripts/checksums.mjs release-assets
+          node scripts/verify-checksums.mjs release-assets --require-all
+          node scripts/verify-release-assets.mjs release-assets --require-all
+          node scripts/verify-release-zip.mjs release-assets --require-all
+          cat "release-assets/checksums.txt"
+
+      - name: Import GPG private key
+        shell: bash
+        env:
+          GPG_PRIVATE_KEY_B64: ${{ secrets.GPG_PRIVATE_KEY_B64 }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GNUPGHOME: ${{ runner.temp }}/gnupg
+        run: |
+          set -euo pipefail
+          mkdir -p "$GNUPGHOME"
+          chmod 700 "$GNUPGHOME"
+          umask 077
+          if [ -n "${GPG_PRIVATE_KEY_B64:-}" ]; then
+            if ! printf '%s' "$GPG_PRIVATE_KEY_B64" | base64 --decode > "$RUNNER_TEMP/suwol-release-private-key.asc" 2>/tmp/gpg-key-decode.log; then
+              printf '%s' "$GPG_PRIVATE_KEY_B64" > "$RUNNER_TEMP/suwol-release-private-key.asc"
+            fi
+          elif [ -n "${GPG_PRIVATE_KEY:-}" ]; then
+            printf '%s' "$GPG_PRIVATE_KEY" > "$RUNNER_TEMP/suwol-release-private-key.asc"
+          else
+            echo "No GPG private key secret was provided. Set either GPG_PRIVATE_KEY_B64 or GPG_PRIVATE_KEY."
+            exit 1
+          fi
+          gpg --batch --import "$RUNNER_TEMP/suwol-release-private-key.asc"
+          rm -f "$RUNNER_TEMP/suwol-release-private-key.asc"
+
+      - name: Sign final checksums
+        shell: bash
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GNUPGHOME: ${{ runner.temp }}/gnupg
+        run: |
+          set -euo pipefail
+          test -n "$GPG_PASSPHRASE"
+          cd release-assets
+          for checksum_file in checksums.txt "SuwolVisualReference-${VERSION}-checksums.txt"; do
+            printf '%s' "$GPG_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+              --passphrase-fd 0 \
+              --armor --detach-sign \
+              --output "${checksum_file}.asc" \
+              "$checksum_file"
+            test -s "${checksum_file}.asc"
+          done
+
+      - name: Verify final signed checksums
+        shell: bash
+        env:
+          GNUPGHOME: ${{ runner.temp }}/gnupg
+        run: |
+          set -euo pipefail
+          gpg --import suwol-release-public-key.asc
+          gpg --verify release-assets/checksums.txt.asc release-assets/checksums.txt
+          gpg --verify "release-assets/SuwolVisualReference-${VERSION}-checksums.txt.asc" "release-assets/SuwolVisualReference-${VERSION}-checksums.txt"
+          cd release-assets
+          sha256sum -c checksums.txt
+
+      - name: Upload macOS assets and final checksums
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release upload "$RELEASE_TAG" \
+            "release-assets/SuwolVisualReference-${VERSION}-mac-arm64.dmg" \
+            "release-assets/SuwolVisualReference-${VERSION}-mac-arm64.zip" \
+            "release-assets/latest-mac.yml" \
+            "release-assets/checksums.txt" \
+            "release-assets/checksums.txt.asc" \
+            "release-assets/SuwolVisualReference-${VERSION}-checksums.txt" \
+            "release-assets/SuwolVisualReference-${VERSION}-checksums.txt.asc" \
+            "suwol-release-public-key.asc" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber

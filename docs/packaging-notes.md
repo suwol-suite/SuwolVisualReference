@@ -148,7 +148,7 @@ On GitHub Actions Ubuntu runners, Chromium can abort packaged Electron verificat
 
 Sharp 0.34 uses platform-specific optional packages under `node_modules/@img`, including libvips payloads. Those files must be unpacked alongside `node_modules/sharp` so the packaged Linux app can load `libvips-cpp.so` during verification and runtime thumbnail work.
 
-The GitHub Actions release workflow verifies each OS package before upload. The publish job then downloads Windows, Linux, and macOS artifacts, prints their actual paths, normalizes them into `release-assets/`, runs checksum, release-asset, and ZIP verification scripts, signs `checksums.txt` and the versioned checksum file with the GPG release secret, verifies the signatures with `suwol-release-public-key.asc`, and uploads the complete asset set to GitHub Releases.
+The GitHub Actions release workflow verifies each OS package before upload. The macOS job runs in parallel with Windows and Linux. As soon as Windows and Linux artifacts are ready, the core publish job uploads those assets with core checksums and signatures. After macOS signing/notarization finishes, the final job downloads the existing Release assets, adds macOS DMG/ZIP and `latest-mac.yml`, regenerates complete checksums, signs them with the GPG release secret, verifies with `--require-all`, and uploads the final checksum/signature set.
 
 ## AppImage Update Support
 

@@ -63,14 +63,12 @@ Do not delete or recreate a local or remote release tag without explicit user ap
 
 1. Windows runner builds and verifies the Windows ZIP.
 2. Linux runner builds and verifies the Linux ZIP, Linux AppImage, and `latest-linux.yml`.
-3. macOS self-hosted ARM64 runner builds, signs, notarizes, staples, and verifies macOS DMG/ZIP artifacts and `latest-mac.yml`.
-4. Release job downloads all OS artifacts and prints their actual paths.
-5. Release job normalizes the downloaded files to stable release asset names.
-6. Release job creates `checksums.txt` and `SuwolVisualReference-<version>-checksums.txt`.
-7. Release job verifies the complete asset set with `--require-all`.
-8. Release job signs both checksum files with the `GPG_PRIVATE_KEY_B64` or `GPG_PRIVATE_KEY` and `GPG_PASSPHRASE` secrets.
-9. Release job verifies checksums and detached GPG signatures with `suwol-release-public-key.asc`.
-10. Release job publishes or updates the GitHub Release.
+3. macOS self-hosted ARM64 runner builds, signs, notarizes, staples, and verifies macOS DMG/ZIP artifacts and `latest-mac.yml` in parallel with Windows and Linux.
+4. The core publish job starts as soon as Windows and Linux artifacts are ready, before waiting for macOS.
+5. The core publish job uploads Windows ZIP, Linux ZIP, Linux AppImage, `latest-linux.yml`, core checksums, signatures, and the public key.
+6. The final macOS job waits for both the core publish and macOS build jobs.
+7. The final macOS job downloads the existing Release assets, adds macOS DMG/ZIP and `latest-mac.yml`, regenerates complete checksums, signs them, verifies with `--require-all`, and uploads refreshed final checksums.
+8. The final Release asset set must include Windows ZIP, Linux ZIP, Linux AppImage, `latest-linux.yml`, macOS DMG, macOS ZIP, `latest-mac.yml`, checksums, detached signatures, and `suwol-release-public-key.asc`.
 
 ## macOS Diagnostics
 

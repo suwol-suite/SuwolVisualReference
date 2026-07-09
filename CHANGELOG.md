@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- No unreleased changes.
+### Changed
+
+- Release workflow now publishes Windows/Linux artifacts as soon as they are ready while the macOS signing/notarization job continues in parallel, then uploads macOS artifacts and refreshed final checksums.
 
 ## 0.2.5 - 2026-07-08
 
